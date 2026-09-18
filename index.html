@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GNSS Interference Map</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      color: #1f2937;
+    }
+
+    header {
+      background: #111827;
+      color: white;
+      padding: 18px 24px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    header p {
+      margin: 5px 0 0;
+      color: #d1d5db;
+      font-size: 13px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+
+    .controls {
+      background: white;
+      padding: 18px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      display: grid;
+      grid-template-columns: 1fr 1fr 180px 180px 150px;
+      gap: 12px;
+      align-items: end;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #4b5563;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    button {
+      border: none;
+      border-radius: 6px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .check-btn {
+      background: #2563eb;
+      color: white;
+    }
+
+    .check-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .result {
+      margin-top: 15px;
+      background: white;
+      border-radius: 10px;
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .result h2 {
+      margin-top: 0;
+      font-size: 18px;
+    }
+
+    .result-row {
+      margin: 8px 0;
+      font-size: 14px;
+    }
+
+    .warning {
+      color: #b45309;
+      font-weight: bold;
+    }
+
+    .danger {
+      color: #dc2626;
+      font-weight: bold;
+    }
+
+    .spoofing {
+      color: #7c3aed;
+      font-weight: bold;
+    }
+
+    .success {
+      color: #15803d;
+      font-weight: bold;
+    }
+
+    .email-section {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .email-section h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .email-buttons {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .copy-btn {
+      background: #374151;
+      color: white;
+    }
+
+    .email-btn {
+      background: #059669;
+      color: white;
+    }
+
+    #map {
+      height: 650px;
+      margin-top: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .legend {
+      background: white;
+      padding: 10px 12px;
+      line-height: 20px;
+      border-radius: 6px;
+      box-shadow: 0 1px 5px rgba(0,0,0,.25);
+      font-size: 12px;
+    }
+
+    .legend span {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    .medium-box {
+      background: orange;
+    }
+
+    .high-box {
+      background: red;
+    }
+
+    .spoof-box {
+      background: purple;
+    }
+
+    @media (max-width: 900px) {
+      .controls {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>GNSS Interference Map</h1>
+  <p>
+    Identify potential GNSS interference and spoofing areas along a route
+  </p>
+</header>
+
+<div class="container">
+
+  <div class="controls">
+
+    <div>
+      <label>FROM</label>
+      <input id="from" type="text" placeholder="COK">
+    </div>
+
+    <div>
+      <label>TO</label>
+      <input id="to" type="text" placeholder="RUH">
+    </div>
+
+    <div>
+      <label>DATE</label>
+      <input id="date" type="date" value="2026-09-17">
+    </div>
+
+    <div>
+      <label>AVERAGE SPEED (KM/H)</label>
+      <input
+        id="speed"
+        type="number"
+        value="450"
+        min="100"
+        max="1000"
+      >
+    </div>
+
+    <button class="check-btn" onclick="checkRoute()">
+      Check Route
+    </button>
+
+  </div>
+
+  <div
+    id="result"
+    class="result"
+    style="display:none;"
+  ></div>
+
+  <div id="map"></div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/h3-js@4.1.0/dist/h3-js.umd.js"></script>
+
+<script>
+
+/* ============================================================
+   CONFIGURATION
+   ============================================================ */
+
+const EXPOSURE_STEP_KM = 1;
+
+const EASA_REFERENCE_DATE = "16 Sep 2026";
+
+
+/* ============================================================
+   MAP
+   ============================================================ */
+
+const map = L.map("map", {
+  worldCopyJump: false,
+  maxBoundsViscosity: 1
+}).setView([20, 60], 4);
+
+L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+  {
+    attribution: "Tiles &copy; Esri",
+    noWrap: true
+  }
+).addTo(map);
+
+const routeLayer =
+  L.layerGroup().addTo(map);
+
+const interferenceLayer =
+  L.layerGroup().addTo(map);
+
+const spoofingLayer =
+  L.layerGroup().addTo(map);
+
+
+/* ============================================================
+   LEGEND
+   ============================================================ */
+
+const legend =
+  L.control({
+    position: "bottomright"
+  });
+
+legend.onAdd = function() {
+
+  const div =
+    L.DomUtil.create(
+      "div",
+      "legend"
+    );
+
+  div.innerHTML = `
+    <div>
+      <span class="medium-box"></span>
+      Medium GNSS interference indicator
+    </div>
+
+    <div>
+      <span class="high-box"></span>
+      High GNSS interference indicator
+    </div>
+
+    <div>
+      <span class="spoof-box"></span>
+      EASA spoofing indicator
+    </div>
+  `;
+
+  return div;
+};
+
+legend.addTo(map);
+
+
+/* ============================================================
+   DATA
+   ============================================================ */
+
+let airports = [];
+let firs = [];
+let spoofingCodes = [];
+
+
+Promise.all([
+
+  fetch(
+    "data/airports.json"
+  ).then(
+    response => response.json()
+  ),
+
+  fetch(
+    "data/firs.geojson"
+  ).then(
+    response => response.json()
+  ),
+
+  fetch(
+    "data/easa-spoofing.json"
+  ).then(
+    response => response.json()
+  )
+
+])
+.then(
+  ([airportData, firData, spoofData]) => {
+
+    airports =
+      airportData;
+
+    firs =
+      firData.features;
+
+    spoofingCodes =
+      Array.isArray(spoofData)
+        ? spoofData
+        : spoofData.codes || [];
+
+    console.log(
+      "Airports:",
+      airports.length
+    );
+
+    console.log(
+      "FIRs:",
+      firs.length
+    );
+
+    console.log(
+      "EASA codes:",
+      spoofingCodes
+    );
+
+  }
+)
+.catch(
+  error => {
+
+    console.error(
+      "Data loading error:",
+      error
+    );
+
+  }
+);
+
+
+/* ============================================================
+   AIRPORT SEARCH
+   ============================================================ */
+
+function findAirport(input) {
+
+  const value =
+    input
+      .trim()
+      .toLowerCase();
+
+  return airports.find(
+    airport =>
+
+      String(
+        airport.iata || ""
+      ).toLowerCase() === value ||
+
+      String(
+        airport.icao || ""
+      ).toLowerCase() === value
+  );
+}
+
+
+/* ============================================================
+   LOAD GPSJAM DATA
+   ============================================================ */
+
+async function loadInterference(date) {
+
+  const response =
+    await fetch(
+      `data/gpsjam-${date}.json`
+    );
+
+  if (!response.ok) {
+
+    throw new Error(
+      `GPSJAM data not available for ${date}`
+    );
+
+  }
+
+  const data =
+    await response.json();
+
+  interferenceLayer.clearLayers();
+
+  data.forEach(
+    cell => {
+
+      if (
+        cell.level !== "medium" &&
+        cell.level !== "high"
+      ) {
+        return;
+      }
+
+      const boundary =
+        h3.cellToBoundary(
+          cell.hex
+        );
+
+      const coordinates =
+        boundary.map(
+          ([lat, lon]) =>
+            [lat, lon]
+        );
+
+      const polygon =
+        L.polygon(
+          coordinates,
+          {
+
+            color:
+              cell.level === "high"
+                ? "red"
+                : "orange",
+
+            fillColor:
+              cell.level === "high"
+                ? "red"
+                : "orange",
+
+            fillOpacity: 0.35,
+
+            weight: 1
+
+          }
+        );
+
+      polygon.bindPopup(`
+        <b>GNSS Interference Indicator</b><br>
+        Level: ${cell.level}<br>
+        Bad aircraft: ${cell.count_bad_aircraft}<br>
+        Good aircraft: ${cell.count_good_aircraft}<br>
+        Bad percentage: ${cell.bad_percent}%
+      `);
+
+      polygon.addTo(
+        interferenceLayer
+      );
+
+    }
+  );
+
+  return data;
+}
+
+
+/* ============================================================
+   GPSJAM CELL → TURF FEATURE
+   ============================================================ */
+
+function gpsjamCellToFeature(cell) {
+
+  const boundary =
+    h3.cellToBoundary(
+      cell.hex
+    );
+
+  const coordinates =
+    boundary.map(
+      ([lat, lon]) =>
+        [lon, lat]
+    );
+
+  coordinates.push(
+    coordinates[0]
+  );
+
+  return turf.polygon(
+    [coordinates]
+  );
+}
+
+
+/* ============================================================
+   FIND AFFECTED GPSJAM CELLS
+   ============================================================ */
+
+function findAffectedInterferenceCells(
+  route,
+  data
+) {
+
+  const medium = [];
+  const high = [];
+
+  data.forEach(
+    cell => {
+
+      if (
+        cell.level !== "medium" &&
+        cell.level !== "high"
+      ) {
+        return;
+      }
+
+      const polygon =
+        gpsjamCellToFeature(
+          cell
+        );
+
+      if (
+        turf.booleanIntersects(
+          route,
+          polygon
+        )
+      ) {
+
+        const affected = {
+          ...cell,
+          feature: polygon
+        };
+
+        if (
+          cell.level === "high"
+        ) {
+
+          high.push(
+            affected
+          );
+
+        } else {
+
+          medium.push(
+            affected
+          );
+
+        }
+
+      }
+
+    }
+  );
+
+  return {
+    medium,
+    high
+  };
+}
+
+
+/* ============================================================
+   FIND AFFECTED EASA FIRs
+   ============================================================ */
+
+function findAffectedSpoofingFirs(
+  route
+) {
+
+  const affected =
+    new Map();
+
+  firs.forEach(
+    fir => {
+
+      const code =
+        fir.properties?.ICAOCODE;
+
+      if (!code) {
+        return;
+      }
+
+      if (
+        !spoofingCodes.includes(
+          code
+        )
+      ) {
+        return;
+      }
+
+      const feature =
+        turf.feature(
+          fir.geometry,
+          fir.properties
+        );
+
+      if (
+        turf.booleanIntersects(
+          route,
+          feature
+        )
+      ) {
+
+        if (
+          !affected.has(code)
+        ) {
+
+          affected.set(
+            code,
+            {
+              code,
+              name:
+                fir.properties?.FIRname ||
+                code,
+              feature
+            }
+          );
+
+        }
+
+      }
+
+    }
+  );
+
+  return Array.from(
+    affected.values()
+  );
+}
+
+
+/* ============================================================
+   DRAW EASA SPOOFING FIRs
+   ============================================================ */
+
+function drawSpoofingFirs() {
+
+  spoofingLayer.clearLayers();
+
+  firs.forEach(
+    fir => {
+
+      const code =
+        fir.properties?.ICAOCODE;
+
+      if (
+        !spoofingCodes.includes(
+          code
+        )
+      ) {
+        return;
+      }
+
+      const layer =
+        L.geoJSON(
+          fir,
+          {
+
+            style: {
+
+              color: "purple",
+
+              weight: 2,
+
+              fillColor: "purple",
+
+              fillOpacity: 0.08
+
+            }
+
+          }
+        );
+
+      layer.bindPopup(`
+        <b>EASA Spoofing Indicator</b><br>
+        ${fir.properties?.FIRname || code}<br>
+        ICAO: ${code}
+      `);
+
+      layer.addTo(
+        spoofingLayer
+      );
+
+    }
+  );
+}
+
+
+/* ============================================================
+   ESTIMATE EXPOSURE
+   ============================================================ */
+
+function estimateExposureKm(
+  route,
+  polygons
+) {
+
+  if (
+    !polygons.length
+  ) {
+    return 0;
+  }
+
+  const chunks =
+    turf.lineChunk(
+      route,
+      EXPOSURE_STEP_KM,
+      {
+        units:
+          "kilometers"
+      }
+    );
+
+  let exposureKm = 0;
+
+  chunks.features.forEach(
+    chunk => {
+
+      const chunkLength =
+        turf.length(
+          chunk,
+          {
+            units:
+              "kilometers"
+          }
+        );
+
+      const midpoint =
+        turf.along(
+          chunk,
+          chunkLength / 2,
+          {
+            units:
+              "kilometers"
+          }
+        );
+
+      const inside =
+        polygons.some(
+          polygon =>
+            turf.booleanPointInPolygon(
+              midpoint,
+              polygon.feature ||
+              polygon
+            )
+        );
+
+      if (inside) {
+
+        exposureKm +=
+          chunkLength;
+
+      }
+
+    }
+  );
+
+  return exposureKm;
+}
+
+
+/* ============================================================
+   ESTIMATE GPSJAM EXPOSURE
+   ============================================================ */
+
+function estimateInterferenceExposure(
+  route,
+  affectedCells
+) {
+
+  const chunks =
+    turf.lineChunk(
+      route,
+      EXPOSURE_STEP_KM,
+      {
+        units:
+          "kilometers"
+      }
+    );
+
+  let mediumKm = 0;
+  let highKm = 0;
+
+  chunks.features.forEach(
+    chunk => {
+
+      const chunkLength =
+        turf.length(
+          chunk,
+          {
+            units:
+              "kilometers"
+          }
+        );
+
+      const midpoint =
+        turf.along(
+          chunk,
+          chunkLength / 2,
+          {
+            units:
+              "kilometers"
+          }
+        );
+
+      const high =
+        affectedCells.high.some(
+          cell =>
+            turf.booleanPointInPolygon(
+              midpoint,
+              cell.feature
+            )
+        );
+
+      const medium =
+        affectedCells.medium.some(
+          cell =>
+            turf.booleanPointInPolygon(
+              midpoint,
+              cell.feature
+            )
+        );
+
+      if (high) {
+
+        highKm +=
+          chunkLength;
+
+      } else if (medium) {
+
+        mediumKm +=
+          chunkLength;
+
+      }
+
+    }
+  );
+
+  return {
+
+    mediumKm,
+
+    highKm,
+
+    totalKm:
+      mediumKm + highKm
+
+  };
+}
+
+
+/* ============================================================
+   DISTANCE → MINUTES
+   ============================================================ */
+
+function distanceToMinutes(
+  km,
+  speed
+) {
+
+  if (
+    !km ||
+    !speed ||
+    speed <= 0
+  ) {
+    return 0;
+  }
+
+  return Math.round(
+    (km / speed) * 60
+  );
+}
+
+
+/* ============================================================
+   FORMAT MINUTES
+   ============================================================ */
+
+function formatMinutes(
+  minutes
+) {
+
+  if (
+    minutes === 0
+  ) {
+    return "0 minutes";
+  }
+
+  if (
+    minutes < 60
+  ) {
+    return `${minutes} minutes`;
+  }
+
+  const hours =
+    Math.floor(
+      minutes / 60
+    );
+
+  const mins =
+    minutes % 60;
+
+  if (
+    mins === 0
+  ) {
+    return `${hours} hr`;
+  }
+
+  return `${hours} hr ${mins} min`;
+}
+
+
+/* ============================================================
+   FORMAT DATE
+   ============================================================ */
+
+function formatDate(
+  dateString
+) {
+
+  const date =
+    new Date(
+      `${dateString}T00:00:00`
+    );
+
+  return date.toLocaleDateString(
+    "en-GB",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }
+  );
+}
+
+
+/* ============================================================
+   GENERATE SHORT EMAIL
+   ============================================================ */
+
+function generateEmailStatement(
+  details
+) {
+
+  const firNames =
+    details.affectedFirs.length
+
+      ? details.affectedFirs
+          .map(
+            fir => fir.name
+          )
+          .join(", ")
+
+      : "the affected area";
+
+
+  let reason = "";
+
+
+  if (
+    details.interferenceMinutes > 0 &&
+    details.spoofingMinutes > 0
+  ) {
+
+    reason =
+      "GNSS interference and spoofing activity";
+
+  }
+
+  else if (
+    details.spoofingMinutes > 0
+  ) {
+
+    reason =
+      "GNSS spoofing activity";
+
+  }
+
+  else if (
+    details.interferenceMinutes > 0
+  ) {
+
+    reason =
+      "GNSS interference activity";
+
+  }
+
+  else {
+
+    reason =
+      "GNSS interference or spoofing activity";
+
+  }
+
+
+  const subject =
+    `GNSS Interference – ${details.from} to ${details.to}`;
+
+
+  const body =
+`Subject: ${subject}
+
+Hello,
+
+The ${details.from}–${details.to} route was affected by ${reason} in the ${firNames}.
+
+Regards,
+GNSS Support Team`;
+
+
+  return {
+    subject,
+    body
+  };
+}
+
+
+/* ============================================================
+   SHOW RESULT
+   ============================================================ */
+
+function showResult(
+  details
+) {
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+
+  const firNames =
+    details.affectedFirs.length
+
+      ? details.affectedFirs
+          .map(
+            fir => fir.name
+          )
+          .join(", ")
+
+      : "None";
+
+
+  let interferenceHTML;
+
+
+  if (
+    details.affectedCells.medium.length ||
+    details.affectedCells.high.length
+  ) {
+
+    interferenceHTML = `
+
+      <div class="result-row warning">
+
+        GNSS interference indicator:
+
+        ${
+          details.affectedCells.medium.length +
+          details.affectedCells.high.length
+        }
+
+        affected cells
+
+      </div>
+
+
+      <div class="result-row">
+
+        Estimated exposure:
+
+        <b>
+          ${formatMinutes(
+            details.interferenceMinutes
+          )}
+        </b>
+
+      </div>
+
+
+      <div class="result-row">
+
+        Medium:
+
+        ${
+          details.interferenceExposure.mediumKm
+            .toFixed(0)
+        }
+
+        km
+
+      </div>
+
+
+      <div class="result-row">
+
+        High:
+
+        ${
+          details.interferenceExposure.highKm
+            .toFixed(0)
+        }
+
+        km
+
+      </div>
+
+    `;
+
+  }
+
+  else {
+
+    interferenceHTML = `
+
+      <div class="result-row success">
+
+        GNSS interference indicator:
+
+        No affected cells intersected
+
+      </div>
+
+    `;
+
+  }
+
+
+  let spoofingHTML;
+
+
+  if (
+    details.affectedFirs.length
+  ) {
+
+    spoofingHTML = `
+
+      <div class="result-row spoofing">
+
+        EASA spoofing indicator:
+
+        ${
+          details.affectedFirs.length
+        }
+
+        affected FIR(s)
+
+      </div>
+
+
+      <div class="result-row">
+
+        Estimated exposure:
+
+        <b>
+          ${formatMinutes(
+            details.spoofingMinutes
+          )}
+        </b>
+
+      </div>
+
+
+      <div class="result-row">
+
+        Affected FIR:
+
+        <b>
+          ${firNames}
+        </b>
+
+      </div>
+
+    `;
+
+  }
+
+  else {
+
+    spoofingHTML = `
+
+      <div class="result-row success">
+
+        EASA spoofing indicator:
+
+        No affected FIR intersected
+
+      </div>
+
+    `;
+
+  }
+
+
+  const email =
+    generateEmailStatement(
+      details
+    );
+
+
+  result.innerHTML = `
+
+    <h2>
+      Route Assessment:
+      ${details.from} → ${details.to}
+    </h2>
+
+
+    <div class="result-row">
+
+      <b>Date:</b>
+
+      ${formatDate(
+        details.date
+      )}
+
+    </div>
+
+
+    <div class="result-row">
+
+      <b>Route distance:</b>
+
+      ${details.routeDistance.toFixed(0)}
+      km
+
+    </div>
+
+
+    <div class="result-row">
+
+      <b>Average speed:</b>
+
+      ${details.speed}
+      km/h
+
+    </div>
+
+
+    ${interferenceHTML}
+
+
+    ${spoofingHTML}
+
+
+    <div class="result-row">
+
+      <small>
+
+        Exposure time is estimated using
+        the selected average speed and
+        approximately 1 km route segments.
+
+      </small>
+
+    </div>
+
+
+    <div class="email-section">
+
+      <h3>
+        Generated Email Statement
+      </h3>
+
+
+      <textarea
+        id="emailText"
+        readonly
+      ></textarea>
+
+
+      <div class="email-buttons">
+
+        <button
+          class="copy-btn"
+          onclick="copyEmail()"
+        >
+          Copy Email
+        </button>
+
+
+        <button
+          class="email-btn"
+          onclick="openEmail()"
+        >
+          Open in Email
+        </button>
+
+      </div>
+
+    </div>
+
+  `;
+
+
+  document.getElementById(
+    "emailText"
+  ).value =
+    email.body;
+
+
+  result.style.display =
+    "block";
+
+
+  window.generatedEmail =
+    email;
+}
+
+
+/* ============================================================
+   COPY EMAIL
+   ============================================================ */
+
+async function copyEmail() {
+
+  const textarea =
+    document.getElementById(
+      "emailText"
+    );
+
+
+  try {
+
+    await navigator.clipboard.writeText(
+      textarea.value
+    );
+
+    alert(
+      "Email statement copied."
+    );
+
+  }
+
+  catch (error) {
+
+    textarea.select();
+
+    document.execCommand(
+      "copy"
+    );
+
+    alert(
+      "Email statement copied."
+    );
+
+  }
+}
+
+
+/* ============================================================
+   OPEN EMAIL
+   ============================================================ */
+
+function openEmail() {
+
+  if (
+    !window.generatedEmail
+  ) {
+    return;
+  }
+
+
+  const subject =
+    encodeURIComponent(
+      window.generatedEmail.subject
+    );
+
+
+  const body =
+    encodeURIComponent(
+      window.generatedEmail.body
+    );
+
+
+  window.location.href =
+    `mailto:?subject=${subject}&body=${body}`;
+}
+
+
+/* ============================================================
+   CHECK ROUTE
+   ============================================================ */
+
+async function checkRoute() {
+
+  const fromInput =
+    document.getElementById(
+      "from"
+    ).value;
+
+
+  const toInput =
+    document.getElementById(
+      "to"
+    ).value;
+
+
+  const date =
+    document.getElementById(
+      "date"
+    ).value;
+
+
+  const speed =
+    Number(
+      document.getElementById(
+        "speed"
+      ).value
+    );
+
+
+  const fromAirport =
+    findAirport(
+      fromInput
+    );
+
+
+  const toAirport =
+    findAirport(
+      toInput
+    );
+
+
+  if (!fromAirport) {
+
+    alert(
+      `Airport not found: ${fromInput}`
+    );
+
+    return;
+  }
+
+
+  if (!toAirport) {
+
+    alert(
+      `Airport not found: ${toInput}`
+    );
+
+    return;
+  }
+
+
+  if (!date) {
+
+    alert(
+      "Please select a date."
+    );
+
+    return;
+  }
+
+
+  if (
+    !speed ||
+    speed <= 0
+  ) {
+
+    alert(
+      "Please enter a valid average speed."
+    );
+
+    return;
+  }
+
+
+  routeLayer.clearLayers();
+
+  interferenceLayer.clearLayers();
+
+  spoofingLayer.clearLayers();
+
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+
+  result.style.display =
+    "block";
+
+
+  result.innerHTML =
+    "<b>Analyzing route...</b>";
+
+
+  try {
+
+    /* ----------------------------------------------------------
+       CREATE ROUTE
+       ---------------------------------------------------------- */
+
+    const route =
+      turf.lineString([
+
+        [
+          Number(
+            fromAirport.lon
+          ),
+
+          Number(
+            fromAirport.lat
+          )
+        ],
+
+        [
+          Number(
+            toAirport.lon
+          ),
+
+          Number(
+            toAirport.lat
+          )
+        ]
+
+      ]);
+
+
+    /* ----------------------------------------------------------
+       ROUTE DISTANCE
+       ---------------------------------------------------------- */
+
+    const routeDistance =
+      turf.length(
+        route,
+        {
+          units:
+            "kilometers"
+        }
+      );
+
+
+    /* ----------------------------------------------------------
+       DRAW ROUTE
+       ---------------------------------------------------------- */
+
+    L.geoJSON(
+      route,
+      {
+
+        style: {
+
+          color: "blue",
+
+          weight: 4,
+
+          opacity: 0.9
+
+        }
+
+      }
+    ).addTo(
+      routeLayer
+    );
+
+
+    /* ----------------------------------------------------------
+       START MARKER
+       ---------------------------------------------------------- */
+
+    L.marker([
+
+      Number(
+        fromAirport.lat
+      ),
+
+      Number(
+        fromAirport.lon
+      )
+
+    ])
+
+    .bindPopup(
+      `<b>${fromAirport.iata}</b><br>
+       ${fromAirport.name || ""}`
+    )
+
+    .addTo(
+      routeLayer
+    );
+
+
+    /* ----------------------------------------------------------
+       END MARKER
+       ---------------------------------------------------------- */
+
+    L.marker([
+
+      Number(
+        toAirport.lat
+      ),
+
+      Number(
+        toAirport.lon
+      )
+
+    ])
+
+    .bindPopup(
+      `<b>${toAirport.iata}</b><br>
+       ${toAirport.name || ""}`
+    )
+
+    .addTo(
+      routeLayer
+    );
+
+
+    /* ----------------------------------------------------------
+       GPSJAM
+       ---------------------------------------------------------- */
+
+    const gpsjamData =
+      await loadInterference(
+        date
+      );
+
+
+    /* ----------------------------------------------------------
+       AFFECTED GPSJAM CELLS
+       ---------------------------------------------------------- */
+
+    const affectedCells =
+      findAffectedInterferenceCells(
+        route,
+        gpsjamData
+      );
+
+
+    /* ----------------------------------------------------------
+       EASA
+       ---------------------------------------------------------- */
+
+    drawSpoofingFirs();
+
+
+    const affectedFirs =
+      findAffectedSpoofingFirs(
+        route
+      );
+
+
+    /* ----------------------------------------------------------
+       GPSJAM EXPOSURE
+       ---------------------------------------------------------- */
+
+    const interferenceExposure =
+      estimateInterferenceExposure(
+        route,
+        affectedCells
+      );
+
+
+    const interferenceMinutes =
+      distanceToMinutes(
+        interferenceExposure.totalKm,
+        speed
+      );
+
+
+    /* ----------------------------------------------------------
+       SPOOFING EXPOSURE
+       ---------------------------------------------------------- */
+
+    const spoofingExposure =
+      estimateExposureKm(
+        route,
+        affectedFirs
+      );
+
+
+    const spoofingMinutes =
+      distanceToMinutes(
+        spoofingExposure,
+        speed
+      );
+
+
+    /* ----------------------------------------------------------
+       DISPLAY
+       ---------------------------------------------------------- */
+
+    showResult({
+
+      from:
+        fromAirport.iata ||
+        fromInput.toUpperCase(),
+
+      to:
+        toAirport.iata ||
+        toInput.toUpperCase(),
+
+      date,
+
+      speed,
+
+      routeDistance,
+
+      affectedCells,
+
+      interferenceExposure,
+
+      interferenceMinutes,
+
+      affectedFirs,
+
+      spoofingExposure,
+
+      spoofingMinutes
+
+    });
+
+
+    /* ----------------------------------------------------------
+       FIT MAP
+       ---------------------------------------------------------- */
+
+    map.fitBounds(
+
+      [
+
+        [
+
+          Number(
+            fromAirport.lat
+          ),
+
+          Number(
+            fromAirport.lon
+          )
+
+        ],
+
+        [
+
+          Number(
+            toAirport.lat
+          ),
+
+          Number(
+            toAirport.lon
+          )
+
+        ]
+
+      ],
+
+      {
+        padding:
+          [40, 40]
+      }
+
+    );
+
+  }
+
+
+  catch (error) {
+
+    console.error(
+      error
+    );
+
+
+    result.innerHTML = `
+
+      <div class="danger">
+
+        Error:
+        ${error.message}
+
+      </div>
+
+    `;
+
+  }
+
+}
+
+</script>
+
+</body>
+</html>
