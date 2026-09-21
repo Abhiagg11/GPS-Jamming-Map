@@ -157,6 +157,7 @@ let currentEmail="";
 
 const DATA={
     airports:"data/airports.json",
+    gpsjam:"data/gpsjam-2026-09-17.json",
     firs:"data/firs.geojson",
     easa:"data/easa-spoofing.json",
     countries:"data/countries.geojson"
@@ -164,114 +165,33 @@ const DATA={
 
 async function loadData(){
     try{
-        const [a,f,e,c]=await Promise.all([
-            fetch(DATA.airports),fetch(DATA.firs),
+        const [a,g,f,e,c]=await Promise.all([
+            fetch(DATA.airports),fetch(DATA.gpsjam),fetch(DATA.firs),
             fetch(DATA.easa),fetch(DATA.countries)
         ]);
 
         if(!a.ok)throw new Error("Could not load airports.json");
+        if(!g.ok)throw new Error("Could not load GPSJAM data");
         if(!f.ok)throw new Error("Could not load FIR data");
         if(!e.ok)throw new Error("Could not load EASA data");
         if(!c.ok)throw new Error("Could not load countries.geojson");
 
         airports=await a.json();
+        gpsjam=await g.json();
         firs=await f.json();
         easaCodes=await e.json();
         countries=await c.json();
-
-        initializeMap();
-
-        const date=document.getElementById("date").value;
-        await loadGpsjamForDate(date);
-    }catch(err){
-        console.error(err);
-        showError("Data loading failed: "+err.message);
-        document.querySelector(".status").textContent="● DATA ERROR";
-    }
-}
-
-async function loadGpsjamForDate(date){
-    const status=document.querySelector(".status");
-    const file=`data/gpsjam/${date}.json`;
-
-    status.textContent="● LOADING GPSJAM…";
-
-    try{
-        const response=await fetch(file,{cache:"no-store"});
-
-        if(!response.ok){
-            throw new Error(`GPSJAM dataset not found for ${date}`);
-        }
-
-        const text=await response.text();
-
-        if(!text.trim()){
-            throw new Error(`GPSJAM dataset for ${date} is empty`);
-        }
-
-        const data=JSON.parse(text);
-
-        if(!Array.isArray(data)){
-            throw new Error(`Invalid GPSJAM dataset for ${date}`);
-        }
-
-        gpsjam=data;
-        gpsjamByHex.clear();
 
         gpsjam.forEach(x=>{
             if(x&&x.hex)gpsjamByHex.set(x.hex,x);
         });
 
-        drawGpsjam();
-
-        status.textContent="● GNSS DATA READY";
-
-        updateGpsjamInfo(date);
-
-        // Recalculate the currently selected route using the newly loaded date.
-        const from=findAirport(document.getElementById("from").value);
-        const to=findAirport(document.getElementById("to").value);
-        const speed=Number(document.getElementById("speed").value);
-
-        if(from && to && speed>0 && routeLayer){
-            analyzeRoute(from,to,speed);
-        }
-
-        console.log(`GPSJAM loaded: ${date} (${gpsjam.length} cells)`);
-
+        initializeMap();
     }catch(err){
-        gpsjam=[];
-        gpsjamByHex.clear();
-        if(gpsjamLayer)gpsjamLayer.clearLayers();
-
-        status.textContent="● GPSJAM DATA UNAVAILABLE";
-        showError(err.message);
-
-        const info=document.getElementById("routeResult");
-        if(info)info.innerHTML="<strong>No GPSJAM data available</strong><br>"+escapeHtml(date);
-
         console.error(err);
+        showError("Data loading failed: "+err.message);
+        document.querySelector(".status").textContent="● DATA ERROR";
     }
-}
-
-function updateGpsjamInfo(date){
-    const info=document.getElementById("routeResult");
-    if(!info)return;
-
-    // Keep route results if a route has already been checked.
-    if(info.dataset.routeChecked==="true")return;
-
-    info.innerHTML=
-        "<strong>GPSJAM dataset:</strong> "+
-        escapeHtml(formatDate(date))+
-        "<br>"+gpsjam.length.toLocaleString()+" cells loaded.";
-}
-
-function formatDate(date){
-    const d=new Date(date+"T00:00:00Z");
-    return d.toLocaleDateString("en-GB",{
-        day:"2-digit",month:"short",year:"numeric",timeZone:"UTC"
-    });
 }
 
 function initializeMap(){
@@ -359,14 +279,7 @@ function initializeMap(){
     // Airports are intentionally NOT drawn globally.
     // Only FROM and TO airports are displayed after route analysis.
 
-    // GPSJAM is loaded asynchronously for the selected date.
-    // Do not load a hard-coded historical dataset here.
-
-    const dateInput=document.getElementById("date");
-    dateInput.addEventListener("change",()=>{
-        clearError();
-        loadGpsjamForDate(dateInput.value);
-    });
+    drawGpsjam();
 
     setTimeout(()=>{
         map.invalidateSize(true);
@@ -672,9 +585,7 @@ function updateResult(from,to,distanceKm,interferenceMinutes,spoofingMinutes){
 
 
 
-    const result=document.getElementById("routeResult");
-    result.innerHTML=text;
-    result.dataset.routeChecked="true";
+    document.getElementById("routeResult").innerHTML=text;
 }
 
 function generateEmailStatement(from,to,interferenceMinutes,spoofingMinutes){

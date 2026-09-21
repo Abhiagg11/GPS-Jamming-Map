@@ -1,56 +1,58 @@
 import csv
 import json
+import os
 import h3
 
-INPUT_FILE = "data/gpsjam-2026-09-17.csv"
-OUTPUT_FILE = "data/gpsjam-2026-09-17.json"
+INPUT_DIR = "data/gpsjam"
+OUTPUT_DIR = "data/gpsjam"
 
-output = []
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-with open(INPUT_FILE, "r", encoding="utf-8") as f:
+for filename in sorted(os.listdir(INPUT_DIR)):
+    if not filename.endswith(".csv"):
+        continue
 
-    reader = csv.DictReader(f)
+    input_file = os.path.join(INPUT_DIR, filename)
 
-    for row in reader:
+    # Skip empty files
+    if os.path.getsize(input_file) == 0:
+        print(f"Skipping empty file: {filename}")
+        continue
 
-        cell = row["hex"]
+    date = filename.replace(".csv", "")
+    output_file = os.path.join(OUTPUT_DIR, f"{date}.json")
 
-        good = int(row["count_good_aircraft"])
-        bad = int(row["count_bad_aircraft"])
+    cells = []
 
-        total = good + bad
+    with open(input_file, "r", newline="") as f:
+        reader = csv.DictReader(f)
 
-        if total == 0:
-            continue
+        for row in reader:
+            cell = row["hex"]
 
-        bad_percent = round(
-            (bad / total) * 100,
-            2
-        )
+            good = int(row["count_good_aircraft"])
+            bad = int(row["count_bad_aircraft"])
 
-        if bad_percent >= 10:
-            level = "high"
+            total = good + bad
 
-        elif bad_percent >= 2:
-            level = "medium"
+            if total == 0:
+                bad_percent = 0
+            else:
+                bad_percent = round((bad / total) * 100, 2)
 
-        else:
-            level = "low"
+            lat, lon = h3.cell_to_latlng(cell)
 
-        lat, lon = h3.cell_to_latlng(cell)
+            cells.append({
+                "hex": cell,
+                "lat": lat,
+                "lon": lon,
+                "good": good,
+                "bad": bad,
+                "bad_percent": bad_percent,
+                "level": 4
+            })
 
-        output.append({
-            "hex": cell,
-            "lat": lat,
-            "lon": lon,
-            "count_good_aircraft": good,
-            "count_bad_aircraft": bad,
-            "bad_percent": bad_percent,
-            "level": level
-        })
+    with open(output_file, "w") as f:
+        json.dump(cells, f, separators=(",", ":"))
 
-with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-    json.dump(output, f)
-
-print(f"Created {OUTPUT_FILE}")
-print(f"Cells processed: {len(output)}")
+    print(f"{date}: {len(cells)} cells -> {output_file}")
