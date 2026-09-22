@@ -429,7 +429,7 @@ function liveSamplePoints(from,to){
         [airportLon(to),airportLat(to)]
     ]);
     const distanceKm=turf.length(route,{units:"kilometers"});
-    const count=Math.min(4,Math.max(2,Math.ceil(distanceKm/1000)));
+    const count=Math.min(6,Math.max(2,Math.ceil(distanceKm/700)));
     const points=[];
     for(let i=0;i<count;i++){
         const p=turf.along(route,distanceKm*i/(count-1),{units:"kilometers"});
@@ -440,7 +440,7 @@ function liveSamplePoints(from,to){
 }
 
 async function fetchLivePoint(lat,lon){
-    const url="/api/live?lat="+encodeURIComponent(lat)+"&lon="+encodeURIComponent(lon);
+    const url="https://api.adsb.lol/v2/lat/"+encodeURIComponent(lat)+"/lon/"+encodeURIComponent(lon)+"/dist/100";
     const r=await fetch(url,{cache:"no-store"});
     if(!r.ok)throw new Error("Live ADS-B request failed ("+r.status+")");
     const d=await r.json();
@@ -452,43 +452,13 @@ async function loadLiveForRoute(from,to){
     liveLayer.clearLayers();
     try{
         const unique=new Map();
-        let successfulSamples=0;
-        let failedSamples=0;
-        let rateLimitedSamples=0;
-
         for(const p of liveSamplePoints(from,to)){
-            try{
-                const ac=await fetchLivePoint(p.lat,p.lon);
-
-                successfulSamples++;
-
-                ac.forEach(a=>{
-                    if(!a.hex || a.lat==null || a.lon==null || a.nac_p==null)return;
-                    const old=unique.get(a.hex);
-                    if(!old || Number(a.seen_pos||999)<Number(old.seen_pos||999)){
-                        unique.set(a.hex,a);
-                    }
-                });
-            }catch(err){
-                failedSamples++;
-
-                if(String(err.message).includes("429")){
-                    rateLimitedSamples++;
-                }
-
-                console.warn("Live sample failed:",p,err);
-            }
-
-            // Small delay between ADSB.lol requests to reduce rate-limit pressure.
-            await new Promise(resolve=>setTimeout(resolve,1500));
-        }
-
-        if(successfulSamples===0){
-            throw new Error(
-                rateLimitedSamples>0
-                    ? "All live samples were rate-limited by ADSB.lol (429)."
-                    : "All live samples failed."
-            );
+            const ac=await fetchLivePoint(p.lat,p.lon);
+            ac.forEach(a=>{
+                if(!a.hex || a.lat==null || a.lon==null || a.nac_p==null)return;
+                const old=unique.get(a.hex);
+                if(!old || Number(a.seen_pos||999)<Number(old.seen_pos||999))unique.set(a.hex,a);
+            });
         }
 
         const cells=new Map();
@@ -527,9 +497,7 @@ async function loadLiveForRoute(from,to){
             "Observed aircraft: <strong>"+unique.size+"</strong><br>"+
             "Degraded cells: <strong>"+medium+"</strong><br>"+
             "High degradation cells: <strong>"+high+"</strong><br>"+
-            "Samples: <strong>"+successfulSamples+"/"+(successfulSamples+failedSamples)+"</strong>"+
-            (rateLimitedSamples ? " ("+rateLimitedSamples+" rate-limited)" : "")+
-            "<br>Updated: <strong>"+liveLastUpdated.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"})+"</strong>";
+            "Updated: <strong>"+liveLastUpdated.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"})+"</strong>";
 
         drawBlueRouteOnly(from,to);
     }catch(err){

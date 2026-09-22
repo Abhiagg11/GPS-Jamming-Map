@@ -1,0 +1,321 @@
+nohup: ignoring input
+127.0.0.1 - - [21/Sep/2026 10:16:48] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:16:49] "GET /data/gpsjam/2026-09-17.json HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:16:59] "GET /api/live?lat=10.151047&lon=76.400838 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:17:02] "GET /api/live?lat=15.561197388331976&lon=67.03135012985318 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:17:05] "GET /api/live?lat=20.555433612010923&lon=57.176736567749806 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:17:07] "GET /api/live?lat=24.9576&lon=46.698799 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:17:18] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:17:20] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:17:20] "GET /api/live?lat=21.564990770827457&lon=50.50602718370111 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:17:22] "GET /api/live?lat=21.564990770827457&lon=50.50602718370111 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:17:23] "GET /api/live?lat=20.687070734590524&lon=61.7776353910097 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:17:24] "GET /api/live?lat=20.687070734590524&lon=61.7776353910097 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:17:25] "GET /api/live?lat=19.088699&lon=72.867897 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:17:26] "GET /api/live?lat=19.088699&lon=72.867897 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:18:08] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:09] "GET /data/gpsjam/2026-09-17.json HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:09] "GET /api/live?lat=10.151047&lon=76.400838 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:11] "GET /api/live?lat=21.564990770827457&lon=50.50602718370111 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:11] "GET /api/live?lat=15.561197388331976&lon=67.03135012985318 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:13] "GET /api/live?lat=20.687070734590524&lon=61.7776353910097 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:18:13] "GET /api/live?lat=20.555433612010923&lon=57.176736567749806 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:15] "GET /api/live?lat=19.088699&lon=72.867897 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:18:15] "GET /api/live?lat=24.9576&lon=46.698799 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:18:17] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:18] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:18] "GET /data/gpsjam/2026-09-17.json HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:19] "GET /api/live?lat=21.564990770827457&lon=50.50602718370111 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:20] "GET /api/live?lat=21.564990770827457&lon=50.50602718370111 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:18:21] code 404, message File not found
+127.0.0.1 - - [21/Sep/2026 10:18:21] "GET /data/gpsjam/2026-09-21.json HTTP/1.1" 404 -
+127.0.0.1 - - [21/Sep/2026 10:18:22] "GET /api/live?lat=20.687070734590524&lon=61.7776353910097 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:22] "GET /api/live?lat=20.687070734590524&lon=61.7776353910097 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:23] "GET /api/live?lat=19.088699&lon=72.867897 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:18:24] "GET /api/live?lat=19.088699&lon=72.867897 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:18:34] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:34] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:36] "GET /api/live?lat=21.564990770827457&lon=50.50602718370111 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:18:37] "GET /api/live?lat=21.564990770827457&lon=50.50602718370111 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:18:38] "GET /api/live?lat=20.687070734590524&lon=61.7776353910097 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:40] "GET /api/live?lat=20.687070734590524&lon=61.7776353910097 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:18:41] "GET /api/live?lat=19.088699&lon=72.867897 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:18:43] "GET /api/live?lat=19.088699&lon=72.867897 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:19:05] "GET /api/live?lat=10.15&lon=76.40 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:19:10] "GET /api/live?lat=10.151047&lon=76.400838 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:19:13] "GET /api/live?lat=15.561197388331976&lon=67.03135012985318 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:19:16] "GET /api/live?lat=20.555433612010923&lon=57.176736567749806 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:19:18] "GET /api/live?lat=24.9576&lon=46.698799 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:19:23] "GET /api/live?lat=19.09&lon=72.87 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:19:26] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:19:28] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 502 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 44880)
+Traceback (most recent call last):
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 33, in handle_live
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/codespace/.local/lib/python3.14/site-packages/requests/models.py", line 1167, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 429 Client Error: Too Many Requests for url: https://api.adsb.lol/v2/lat/21.680241/lon/39.157436/dist/100
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 732, in __init__
+    super().__init__(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 766, in __init__
+    self.handle()
+    ~~~~~~~~~~~^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 496, in handle
+    self.handle_one_request()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 484, in handle_one_request
+    method()
+    ~~~~~~^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 13, in do_GET
+    self.handle_live(parsed)
+    ~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 37, in handle_live
+    self.send_json(
+    ~~~~~~~~~~~~~~^
+        {"error": f"ADSB.lol request failed: {error}"},
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        502
+        ^^^
+    )
+    ^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 57, in send_json
+    self.wfile.write(body)
+    ~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 845, in write
+    self._sock.sendall(b)
+    ~~~~~~~~~~~~~~~~~~^^^
+BrokenPipeError: [Errno 32] Broken pipe
+----------------------------------------
+127.0.0.1 - - [21/Sep/2026 10:44:42] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:44:42] "GET /api/live?lat=21.564990770827457&lon=50.50602718370111 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:44:44] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:44:52] "GET /api/live?lat=21.564990770827457&lon=50.50602718370111 HTTP/1.1" 502 -
+127.0.0.1 - - [21/Sep/2026 10:44:52] "GET /api/live?lat=20.687070734590524&lon=61.7776353910097 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:44:52] "GET /api/live?lat=21.564990770827457&lon=50.50602718370111 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:44:53] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 200 -
+127.0.0.1 - - [21/Sep/2026 10:44:53] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 502 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 56370)
+Traceback (most recent call last):
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 33, in handle_live
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/codespace/.local/lib/python3.14/site-packages/requests/models.py", line 1167, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 429 Client Error: Too Many Requests for url: https://api.adsb.lol/v2/lat/21.680241/lon/39.157436/dist/100
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 732, in __init__
+    super().__init__(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 766, in __init__
+    self.handle()
+    ~~~~~~~~~~~^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 496, in handle
+    self.handle_one_request()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 484, in handle_one_request
+    method()
+    ~~~~~~^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 13, in do_GET
+    self.handle_live(parsed)
+    ~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 37, in handle_live
+    self.send_json(
+    ~~~~~~~~~~~~~~^
+        {"error": f"ADSB.lol request failed: {error}"},
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        502
+        ^^^
+    )
+    ^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 57, in send_json
+    self.wfile.write(body)
+    ~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 845, in write
+    self._sock.sendall(b)
+    ~~~~~~~~~~~~~~~~~~^^^
+BrokenPipeError: [Errno 32] Broken pipe
+----------------------------------------
+127.0.0.1 - - [21/Sep/2026 10:44:53] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 502 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 56362)
+Traceback (most recent call last):
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 33, in handle_live
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/codespace/.local/lib/python3.14/site-packages/requests/models.py", line 1167, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 429 Client Error: Too Many Requests for url: https://api.adsb.lol/v2/lat/21.680241/lon/39.157436/dist/100
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 732, in __init__
+    super().__init__(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 766, in __init__
+    self.handle()
+    ~~~~~~~~~~~^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 496, in handle
+    self.handle_one_request()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 484, in handle_one_request
+    method()
+    ~~~~~~^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 13, in do_GET
+    self.handle_live(parsed)
+    ~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 37, in handle_live
+    self.send_json(
+    ~~~~~~~~~~~~~~^
+        {"error": f"ADSB.lol request failed: {error}"},
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        502
+        ^^^
+    )
+    ^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 57, in send_json
+    self.wfile.write(body)
+    ~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 845, in write
+    self._sock.sendall(b)
+    ~~~~~~~~~~~~~~~~~~^^^
+BrokenPipeError: [Errno 32] Broken pipe
+----------------------------------------
+127.0.0.1 - - [21/Sep/2026 10:44:53] "GET /api/live?lat=10.151047&lon=76.400838 HTTP/1.1" 200 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 56392)
+Traceback (most recent call last):
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 732, in __init__
+    super().__init__(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 766, in __init__
+    self.handle()
+    ~~~~~~~~~~~^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 496, in handle
+    self.handle_one_request()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 484, in handle_one_request
+    method()
+    ~~~~~~^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 13, in do_GET
+    self.handle_live(parsed)
+    ~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 34, in handle_live
+    self.send_json(response.json())
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 57, in send_json
+    self.wfile.write(body)
+    ~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 845, in write
+    self._sock.sendall(b)
+    ~~~~~~~~~~~~~~~~~~^^^
+BrokenPipeError: [Errno 32] Broken pipe
+----------------------------------------
+127.0.0.1 - - [21/Sep/2026 10:44:53] "GET /api/live?lat=21.564990770827457&lon=50.50602718370111 HTTP/1.1" 200 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 56394)
+Traceback (most recent call last):
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 732, in __init__
+    super().__init__(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 766, in __init__
+    self.handle()
+    ~~~~~~~~~~~^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 496, in handle
+    self.handle_one_request()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 484, in handle_one_request
+    method()
+    ~~~~~~^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 13, in do_GET
+    self.handle_live(parsed)
+    ~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 34, in handle_live
+    self.send_json(response.json())
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 57, in send_json
+    self.wfile.write(body)
+    ~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 845, in write
+    self._sock.sendall(b)
+    ~~~~~~~~~~~~~~~~~~^^^
+BrokenPipeError: [Errno 32] Broken pipe
+----------------------------------------
+127.0.0.1 - - [21/Sep/2026 10:44:53] "GET /api/live?lat=21.680241&lon=39.157436 HTTP/1.1" 200 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 56396)
+Traceback (most recent call last):
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 732, in __init__
+    super().__init__(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 766, in __init__
+    self.handle()
+    ~~~~~~~~~~~^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 496, in handle
+    self.handle_one_request()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/codespace/.python/current/lib/python3.14/http/server.py", line 484, in handle_one_request
+    method()
+    ~~~~~~^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 13, in do_GET
+    self.handle_live(parsed)
+    ~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 34, in handle_live
+    self.send_json(response.json())
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/workspaces/GPS-Jamming-Map/live_server.py", line 57, in send_json
+    self.wfile.write(body)
+    ~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/codespace/.python/current/lib/python3.14/socketserver.py", line 845, in write
+    self._sock.sendall(b)
+    ~~~~~~~~~~~~~~~~~~^^^
+BrokenPipeError: [Errno 32] Broken pipe
+----------------------------------------
