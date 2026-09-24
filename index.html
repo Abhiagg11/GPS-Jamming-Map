@@ -6,10 +6,9 @@
 <title>Airport Route Checker</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
+
 <style>
-*{
-    box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 html,body{
     margin:0;
@@ -17,106 +16,190 @@ html,body{
     width:100%;
     height:100%;
     font-family:Inter,Segoe UI,Arial,sans-serif;
-    background:#0b1220;
-    color:#e8eef7;
+    background:#07111f;
+    color:#edf4ff;
 }
 
-body{
-    overflow:hidden;
-}
+body{overflow:hidden}
 
 .app{
-    display:flex;
-    flex-direction:column;
     width:100%;
     height:100vh;
 }
 
 /* HEADER */
 
-.header{
-    height:68px;
-    min-height:68px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 24px;
-    background:#101a2b;
-    border-bottom:1px solid #26354a;
-    box-shadow:0 2px 12px rgba(0,0,0,.25);
-    z-index:1000;
-}
+.header{display:none !important;}
 
 .brand{
     display:flex;
     align-items:center;
-    gap:12px;
+    gap:10px;
 }
 
 .brand-icon{
-    width:38px;
-    height:38px;
+    width:32px;
+    height:32px;
     display:flex;
     align-items:center;
     justify-content:center;
-    border-radius:10px;
-    background:#12345d;
-    color:#63a4ff;
-    font-size:20px;
+    border-radius:8px;
+    background:linear-gradient(145deg,#123967,#0c2746);
+    color:#63a8ff;
+    font-size:16px;
+    box-shadow:inset 0 0 0 1px rgba(99,168,255,.18);
 }
 
 h1{
     margin:0;
-    font-size:19px;
-    font-weight:650;
+    font-size:16px;
+    font-weight:700;
     letter-spacing:.2px;
 }
 
 .subtitle{
-    margin-top:3px;
-    color:#8494aa;
-    font-size:11px;
+    margin-top:2px;
+    color:#71849b;
+    font-size:10px;
 }
 
 .status{
-    padding:8px 13px;
-    border:1px solid #27533e;
-    border-radius:20px;
-    background:#10251d;
-    color:#5ee09a;
-    font-size:11px;
-    font-weight:650;
-    letter-spacing:.5px;
+    padding:6px 11px;
+    border:1px solid rgba(64,205,137,.3);
+    border-radius:18px;
+    background:rgba(16,55,39,.65);
+    color:#64dfa0;
+    font-size:9px;
+    font-weight:750;
+    letter-spacing:.7px;
 }
 
-/* MAIN WORKSPACE */
+/* WORKSPACE */
 
 .workspace{
     position:relative;
     width:100%;
-    height:calc(100vh - 68px);
+    height:100vh !important;
     min-height:0;
     overflow:hidden;
 }
 
-.controls{
-    position:absolute;
-    top:0;
-    left:0;
-    right:0;
-    z-index:1000;
-    padding:12px 20px;
-    background:rgba(15,25,41,.94);
-    border-bottom:1px solid #26354a;
-    box-shadow:0 3px 15px rgba(0,0,0,.25);
+#map{
+    position:absolute !important;
+    inset:0 !important;
+    width:100% !important;
+    height:100% !important;
+    min-height:0 !important;
+    z-index:1 !important;
 }
 
-#map{
+/* TOP ROUTE PANEL */
+
+.controls{
     position:absolute;
-    inset:0;
+    top:74px;
+    left:50%;
+    transform:translateX(-50%);
+    width:min(760px,calc(100% - 32px));
+    z-index:1500;
+    padding:12px 14px;
+    background:rgba(10,23,39,.94);
+    border:1px solid rgba(120,155,195,.25);
+    border-radius:12px;
+    box-shadow:0 10px 35px rgba(0,0,0,.42);
+    backdrop-filter:blur(14px);
+}
+
+.controls-title{
+    margin:0 0 8px 2px;
+    color:#91a7c1;
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+}
+
+.mode-row{
+    display:none;
+}
+
+.control-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.control{
+    flex:1;
+    min-width:0;
+}
+
+.control input{
     width:100%;
-    height:100%;
-    background:#111c2c;
+    height:38px;
+    padding:0 12px;
+    border:1px solid #2b4058;
+    border-radius:7px;
+    outline:none;
+    background:#0c1a2b;
+    color:#eef5ff;
+    font-size:12px;
+    font-weight:650;
+    transition:.15s;
+}
+
+.control input::placeholder{
+    color:#637991;
+}
+
+.control input:focus{
+    border-color:#3f8cff;
+    box-shadow:0 0 0 2px rgba(63,140,255,.12);
+}
+
+#speed{
+    max-width:120px;
+}
+
+.check-btn,
+.clear-btn{
+    height:38px;
+    padding:0 14px;
+    border-radius:7px;
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.4px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:.15s;
+}
+
+.check-btn{
+    border:1px solid #277eea;
+    background:#1769d2;
+    color:#fff;
+}
+
+.check-btn:hover{
+    background:#2582ed;
+    transform:translateY(-1px);
+}
+
+.clear-btn{
+    border:1px solid #334b66;
+    background:#142438;
+    color:#b9c8d9;
+}
+
+.clear-btn:hover{
+    background:#1b3048;
+    color:#fff;
+}
+
+.error{
+    margin-top:6px;
+    color:#ff8585;
+    font-size:10px;
 }
 
 /* AIRPORT INFORMATION */
@@ -125,20 +208,23 @@ h1{
     position:absolute;
     left:20px;
     bottom:20px;
-    width:min(620px,calc(100% - 40px));
-    max-height:190px;
-    overflow:auto;
-    z-index:800;
-    padding:15px 17px;
-    background:rgba(17,28,44,.96);
-    border:1px solid #34475f;
-    border-radius:10px;
-    box-shadow:0 8px 28px rgba(0,0,0,.38);
-    backdrop-filter:blur(8px);
+    width:min(500px,calc(100% - 40px));
+    z-index:1200;
+    padding:13px 15px;
+    background:rgba(9,21,36,.94);
+    border:1px solid rgba(120,155,195,.25);
+    border-radius:11px;
+    box-shadow:0 10px 32px rgba(0,0,0,.4);
+    backdrop-filter:blur(12px);
 }
 
 .info-title{
-    margin-bottom:10px;
+    margin-bottom:9px;
+    color:#849ab3;
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:1.1px;
+    text-transform:uppercase;
 }
 
 .airport-info{
@@ -148,76 +234,92 @@ h1{
 }
 
 .airport-row{
-    padding:10px 12px;
+    padding:10px 11px;
+    border:1px solid #263b54;
+    border-radius:7px;
+    background:#0d1b2c;
+}
+
+.airport-type{
+    margin-bottom:4px;
+    color:#579bff;
+    font-size:8px;
+    font-weight:800;
+    letter-spacing:1px;
+}
+
+.airport-name{
+    color:#edf4ff;
+    font-size:12px;
+    font-weight:700;
+}
+
+.airport-meta{
+    margin-top:3px;
+    color:#73879f;
+    font-size:9px;
 }
 
 .route-distance{
-    padding:8px 12px;
+    margin-top:8px;
+    padding:8px 11px;
+    border:1px solid #263b54;
+    border-radius:7px;
+    background:#0b1726;
+    color:#9db1c8;
+    font-size:10px;
+}
+
+.route-distance strong{
+    color:#e9f2ff;
 }
 
 .airport-placeholder{
-    padding:14px;
-}
-
-/* Keep the map above the controls visually */
-.leaflet-container{
-    z-index:1;
+    padding:10px 11px;
+    border:1px dashed #2d425b;
+    border-radius:7px;
+    color:#71849a;
+    font-size:10px;
 }
 
 /* LEAFLET */
 
+.leaflet-control-zoom{
+    border:1px solid rgba(100,130,165,.25)!important;
+    box-shadow:0 5px 18px rgba(0,0,0,.35)!important;
+}
+
 .leaflet-control-zoom a{
-    background:#111c2c !important;
-    color:#d7e0eb !important;
-    border-color:#304258 !important;
+    background:#0d1b2c!important;
+    color:#bcd0e5!important;
+    border-color:#263b54!important;
 }
 
-.leaflet-control-attribution{
-    background:rgba(11,18,32,.85) !important;
-    color:#718198 !important;
+.leaflet-control-zoom a:hover{
+    background:#162940!important;
+    color:#fff!important;
 }
 
-.leaflet-control-attribution a{
-    color:#719bd1 !important;
-}
+/* MOBILE */
 
-.airport-marker{
-    width:14px;
-    height:14px;
-    border:3px solid #fff;
-    border-radius:50%;
-    background:#247cf0;
-    box-shadow:0 0 0 3px rgba(36,124,240,.28);
-}
-
-.airport-label{
-    background:#101a2b !important;
-    border:1px solid #34485f !important;
-    color:#e6edf5 !important;
-    padding:3px 6px !important;
-    border-radius:4px !important;
-    font-size:10px !important;
-    font-weight:700 !important;
-    box-shadow:0 2px 8px rgba(0,0,0,.3) !important;
-}
-
-.map-label{
-    background:transparent !important;
-    border:0 !important;
-    box-shadow:none !important;
-    color:#8fa1b7 !important;
-    font-size:10px !important;
-    font-weight:600 !important;
-}
-
-/* RESPONSIVE */
-
-@media(max-width:800px){
+@media(max-width:700px){
     .header{
-        padding:0 14px;
+        height:52px;
+        padding:0 12px;
+    }
+
+    .subtitle{
+        display:none;
+    }
+
+    .status{
+        font-size:8px;
+        padding:5px 8px;
     }
 
     .controls{
+        top:64px;
+        width:calc(100% - 20px);
         padding:10px;
     }
 
@@ -226,7 +328,7 @@ h1{
     }
 
     .control{
-        min-width:130px;
+        min-width:calc(50% - 4px);
     }
 
     #speed{
@@ -238,16 +340,14 @@ h1{
         flex:1;
     }
 
-    .bottom-panel{
-        grid-template-columns:1fr;
-        padding:10px;
-    }
-
-    .airport-info{
-        grid-template-columns:1fr;
+    .map-info{
+        left:10px;
+        bottom:10px;
+        width:calc(100% - 20px);
     }
 }
 </style>
+
 
 <style>
 /* FINAL ROUTE MAP LAYOUT */
@@ -279,11 +379,13 @@ html, body {
     z-index:1 !important;
 }
 
-.workspace > .controls {
+.workspace > .controls{
     position:absolute !important;
-    top:0 !important;
-    left:0 !important;
-    right:0 !important;
+    top:20px !important;
+    left:50% !important;
+    right:auto !important;
+    transform:translateX(-50%);
+    width:min(1030px,calc(100% - 40px)) !important;
     z-index:1000 !important;
 }
 
@@ -308,150 +410,609 @@ html, body {
 </style>
 
 
+
+
+
 <style>
-/* COMPACT ROUTE CONTROLS */
+/* =========================================================
+   FINAL ROUTE CHECKER UI
+   ========================================================= */
+
+html, body {
+    background:#eef2f6 !important;
+    color:#172333;
+}
+
+/* Full-screen map */
+.workspace {
+    position:relative !important;
+    width:100% !important;
+    height:calc(100vh - 68px) !important;
+    overflow:hidden !important;
+}
+
+#map {
+    position:absolute !important;
+    inset:0 !important;
+    width:100% !important;
+    height:100% !important;
+    min-height:0 !important;
+    background:#eef2f6 !important;
+}
+
+/* -------------------------
+   TOP ROUTE CONTROL CARD
+   ------------------------- */
 
 .workspace > .controls {
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    padding: 8px 16px !important;
-    height: 62px !important;
-    min-height: 62px !important;
+    position:absolute !important;
+    top:16px !important;
+    left:50% !important;
+    right:auto !important;
+    transform:translateX(-50%) !important;
+
+    width:min(920px,calc(100% - 32px)) !important;
+    height:auto !important;
+    min-height:0 !important;
+
+    padding:14px 16px !important;
+
+    background:rgba(255,255,255,.97) !important;
+    border:1px solid #d5dee8 !important;
+    border-radius:14px !important;
+
+    box-shadow:0 8px 30px rgba(31,48,68,.18) !important;
+
+    z-index:1000 !important;
 }
 
+/* Title visible again */
 .controls-title {
-    display: none !important;
+    display:block !important;
+    margin:0 0 10px 2px !important;
+
+    color:#172333 !important;
+    font-size:13px !important;
+    font-weight:800 !important;
+    letter-spacing:.7px !important;
+    text-transform:uppercase !important;
 }
 
+/* Hide empty mode row */
 .mode-row {
-    display: none !important;
+    display:none !important;
 }
 
+/* Main controls */
 .control-row {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    flex-wrap: nowrap !important;
-    gap: 8px !important;
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
+    display:flex !important;
+    flex-direction:row !important;
+    align-items:center !important;
+    gap:9px !important;
+    width:100% !important;
+    margin:0 !important;
 }
 
+/* Inputs */
 .control {
-    flex: 0 0 auto !important;
+    flex:1 1 0 !important;
+    min-width:0 !important;
 }
 
 .control input {
-    height: 38px !important;
-    width: 150px !important;
-    padding: 0 11px !important;
-    font-size: 13px !important;
+    width:100% !important;
+    height:42px !important;
+    padding:0 13px !important;
+
+    background:#f7f9fb !important;
+    color:#172333 !important;
+
+    border:1px solid #cbd6e2 !important;
+    border-radius:9px !important;
+
+    font-size:13px !important;
+    font-weight:650 !important;
+
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.03) !important;
+}
+
+.control input::placeholder {
+    color:#8493a3 !important;
+}
+
+.control input:focus {
+    background:#fff !important;
+    border-color:#2675d9 !important;
+    box-shadow:0 0 0 3px rgba(38,117,217,.12) !important;
 }
 
 #speed {
-    width: 100px !important;
-    max-width: 100px !important;
+    flex:0 0 130px !important;
+    max-width:130px !important;
 }
 
+/* Buttons */
 .check-btn,
 .clear-btn {
-    height: 38px !important;
-    padding: 0 14px !important;
-    white-space: nowrap !important;
+    height:42px !important;
+    border-radius:9px !important;
+    padding:0 17px !important;
+    white-space:nowrap !important;
+    font-size:11px !important;
+    font-weight:800 !important;
+    letter-spacing:.4px !important;
 }
 
+.check-btn {
+    background:#1769d2 !important;
+    color:#fff !important;
+    border:1px solid #1769d2 !important;
+}
+
+.check-btn:hover {
+    background:#0f5bbd !important;
+}
+
+.clear-btn {
+    background:#fff !important;
+    color:#46576a !important;
+    border:1px solid #cbd6e2 !important;
+}
+
+.clear-btn:hover {
+    background:#f2f5f8 !important;
+}
+
+/* Error */
 .workspace > .controls .error {
-    position: absolute !important;
-    top: 62px !important;
-    left: 16px !important;
-    margin: 0 !important;
+    margin:6px 0 0 2px !important;
+    max-width:none !important;
 }
 
-/* MAP */
-
-.workspace > #map {
-    top: 0 !important;
-    height: 100% !important;
-}
-
-/* SMALL AIRPORT INFORMATION CARD */
+/* -------------------------
+   AIRPORT INFORMATION CARD
+   ------------------------- */
 
 .workspace > .map-info {
-    left: 16px !important;
-    bottom: 16px !important;
-    width: 520px !important;
-    max-width: calc(100% - 32px) !important;
-    max-height: 125px !important;
-    min-height: 0 !important;
-    padding: 11px 14px !important;
-    border-radius: 8px !important;
+    position:absolute !important;
+
+    left:18px !important;
+    bottom:18px !important;
+
+    width:430px !important;
+    max-width:calc(100% - 36px) !important;
+    max-height:145px !important;
+
+    padding:14px 15px !important;
+
+    background:rgba(255,255,255,.96) !important;
+    border:1px solid #d5dee8 !important;
+    border-radius:12px !important;
+
+    box-shadow:0 8px 25px rgba(31,48,68,.16) !important;
+
+    z-index:900 !important;
 }
 
-.workspace > .map-info .info-title {
-    margin-bottom: 7px !important;
-    font-size: 9px !important;
+.info-title {
+    margin-bottom:9px !important;
+
+    color:#607286 !important;
+    font-size:10px !important;
+    font-weight:800 !important;
+    letter-spacing:1.2px !important;
+    text-transform:uppercase !important;
 }
 
 .airport-info {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 7px !important;
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    gap:8px !important;
 }
 
 .airport-row {
-    padding: 7px 9px !important;
+    padding:10px 12px !important;
+    background:#f7f9fb !important;
+    border:1px solid #dce4ec !important;
+    border-radius:8px !important;
 }
 
 .airport-type {
-    margin-bottom: 2px !important;
-    font-size: 8px !important;
-}
-
-.airport-details {
-    font-size: 10px !important;
-    line-height: 1.3 !important;
-}
-
-.airport-details strong {
-    font-size: 12px !important;
+    color:#1769d2 !important;
 }
 
 .airport-placeholder {
-    padding: 8px !important;
-    font-size: 10px !important;
+    padding:10px !important;
+    color:#66778a !important;
+    font-size:12px !important;
 }
 
-.route-distance {
-    padding: 5px 8px !important;
-    font-size: 10px !important;
+/* Leaflet controls */
+.leaflet-control-zoom a {
+    background:#fff !important;
+    color:#34495e !important;
+    border-color:#d5dee8 !important;
 }
 
-.route-distance strong {
-    font-size: 11px !important;
+.leaflet-control-attribution {
+    background:rgba(255,255,255,.85) !important;
+    color:#66778a !important;
 }
 
-/* MOBILE */
+/* Country labels */
+.country-name,
+.map-label,
+.airport-label {
+    color:#26384a !important;
+    text-shadow:
+        0 1px 2px rgba(255,255,255,.95),
+        0 0 3px rgba(255,255,255,.9) !important;
+}
 
-@media (max-width: 700px) {
+/* Selected airport labels */
+.airport-label {
+    background:#fff !important;
+    border:1px solid #cbd6e2 !important;
+    color:#172333 !important;
+    border-radius:5px !important;
+    padding:3px 6px !important;
+    font-weight:700 !important;
+    box-shadow:0 2px 7px rgba(0,0,0,.12) !important;
+}
+
+/* Mobile */
+@media (max-width:700px) {
+
     .workspace > .controls {
-        height: 108px !important;
-        min-height: 108px !important;
+        top:10px !important;
+        width:calc(100% - 20px) !important;
+        padding:12px !important;
     }
 
     .control-row {
-        flex-wrap: wrap !important;
+        flex-wrap:wrap !important;
     }
 
-    .control input {
-        width: 120px !important;
+    .control {
+        flex:1 1 calc(50% - 5px) !important;
+    }
+
+    #speed {
+        flex:1 1 calc(50% - 5px) !important;
+        max-width:none !important;
+    }
+
+    .check-btn,
+    .clear-btn {
+        flex:1 1 calc(50% - 5px) !important;
     }
 
     .workspace > .map-info {
-        width: calc(100% - 20px) !important;
-        left: 10px !important;
-        bottom: 10px !important;
+        left:10px !important;
+        bottom:10px !important;
+        width:calc(100% - 20px) !important;
+    }
+}
+</style>
+
+
+<style>
+/* =========================================================
+   FULL-SCREEN MAP LAYOUT
+   Map occupies the entire browser viewport.
+   UI elements float above the map.
+   ========================================================= */
+
+html,
+body {
+    width:100% !important;
+    height:100% !important;
+    margin:0 !important;
+    padding:0 !important;
+    overflow:hidden !important;
+    background:#eef2f6 !important;
+}
+
+.app {
+    position:relative !important;
+    width:100vw !important;
+    height:100vh !important;
+    margin:0 !important;
+    padding:0 !important;
+    max-width:none !important;
+    overflow:hidden !important;
+}
+
+/* MAP = entire screen */
+.workspace {
+    position:absolute !important;
+    inset:0 !important;
+
+    width:100vw !important;
+    height:100vh !important;
+
+    margin:0 !important;
+    padding:0 !important;
+
+    overflow:hidden !important;
+    background:#eef2f6 !important;
+}
+
+#map {
+    position:absolute !important;
+    inset:0 !important;
+
+    width:100% !important;
+    height:100% !important;
+
+    min-height:0 !important;
+    margin:0 !important;
+    padding:0 !important;
+
+    background:#eef2f6 !important;
+}
+
+/* HEADER FLOATS OVER MAP */
+.header {
+    position:absolute !important;
+    top:0 !important;
+    left:0 !important;
+    right:0 !important;
+
+    width:100% !important;
+    height:68px !important;
+
+    z-index:2000 !important;
+
+    background:rgba(10,24,42,.94) !important;
+    backdrop-filter:blur(10px) !important;
+
+    border-bottom:1px solid rgba(255,255,255,.12) !important;
+}
+
+/* ROUTE CONTROL CARD */
+.workspace > .controls {
+    position:absolute !important;
+
+    top:84px !important;
+    left:50% !important;
+    right:auto !important;
+
+    transform:translateX(-50%) !important;
+
+    width:min(920px,calc(100% - 32px)) !important;
+
+    z-index:1500 !important;
+}
+
+/* AIRPORT INFORMATION */
+.workspace > .map-info {
+    position:absolute !important;
+
+    left:18px !important;
+    bottom:18px !important;
+
+    width:430px !important;
+    max-width:calc(100% - 36px) !important;
+
+    z-index:1500 !important;
+}
+
+/* Keep Leaflet above map but below our UI */
+.leaflet-control-container {
+    z-index:1000 !important;
+}
+
+/* Make country labels readable on light map */
+.country-name,
+.map-label,
+.airport-label {
+    color:#26384a !important;
+
+    text-shadow:
+        0 1px 2px rgba(255,255,255,.95),
+        0 0 3px rgba(255,255,255,.9) !important;
+}
+
+/* Mobile */
+@media(max-width:700px) {
+
+    .header {
+        height:60px !important;
+    }
+
+    .workspace > .controls {
+        top:72px !important;
+        width:calc(100% - 20px) !important;
+    }
+
+    .workspace > .map-info {
+        left:10px !important;
+        bottom:10px !important;
+        width:calc(100% - 20px) !important;
+    }
+}
+</style>
+
+
+<style>
+/* FINAL HEADER OVER MAP */
+
+.header {
+    position:absolute !important;
+    top:0 !important;
+    left:0 !important;
+    right:0 !important;
+
+    height:68px !important;
+    min-height:68px !important;
+
+    z-index:2000 !important;
+
+    /* Let the map remain visible behind the header */
+    background:linear-gradient(
+        to bottom,
+        rgba(10,24,42,.92),
+        rgba(10,24,42,.68),
+        rgba(10,24,42,0)
+    ) !important;
+
+    border-bottom:0 !important;
+    box-shadow:none !important;
+
+    pointer-events:none !important;
+}
+
+/* Keep header controls clickable */
+.header .status,
+.header .brand {
+    pointer-events:auto !important;
+}
+
+/* Slightly stronger readable title */
+.header h1 {
+    color:#172333 !important;
+    text-shadow:
+        0 1px 3px rgba(255,255,255,.9) !important;
+}
+
+.header .subtitle {
+    color:#40556b !important;
+    text-shadow:
+        0 1px 3px rgba(255,255,255,.9) !important;
+}
+
+/* Keep map genuinely full screen */
+.workspace {
+    position:absolute !important;
+    inset:0 !important;
+    width:100vw !important;
+    height:100vh !important;
+}
+
+/* Route controls remain below the header */
+.workspace > .controls {
+    top:84px !important;
+}
+</style>
+
+
+<style>
+/* FINAL COMPACT LEFT ROUTE PANEL */
+
+.workspace > .controls{
+    position:absolute !important;
+    top:18px !important;
+    left:18px !important;
+    right:auto !important;
+    transform:none !important;
+
+    width:430px !important;
+    max-width:calc(100% - 36px) !important;
+
+    padding:14px 15px !important;
+    height:auto !important;
+    min-height:0 !important;
+
+    background:rgba(255,255,255,.96) !important;
+    border:1px solid #d5dee8 !important;
+    border-radius:12px !important;
+    box-shadow:0 8px 24px rgba(30,55,80,.18) !important;
+
+    z-index:1000 !important;
+}
+
+/* Small title */
+.workspace > .controls .controls-title{
+    display:block !important;
+    margin:0 0 9px 1px !important;
+
+    color:#24364b !important;
+    font-size:13px !important;
+    font-weight:800 !important;
+    letter-spacing:.7px !important;
+    text-transform:uppercase !important;
+}
+
+/* Hide unused mode row */
+.workspace > .controls .mode-row{
+    display:none !important;
+}
+
+/* Inputs + buttons */
+.workspace > .controls .control-row{
+    display:flex !important;
+    align-items:center !important;
+    gap:7px !important;
+    width:100% !important;
+    margin:0 !important;
+}
+
+/* Airport inputs */
+.workspace > .controls .control{
+    flex:1 1 100px !important;
+    min-width:0 !important;
+}
+
+.workspace > .controls input{
+    width:100% !important;
+    height:38px !important;
+    padding:0 11px !important;
+
+    background:#f7f9fc !important;
+    border:1px solid #d3dce7 !important;
+    border-radius:8px !important;
+
+    color:#25364a !important;
+    font-size:13px !important;
+    font-weight:700 !important;
+}
+
+/* Hide speed field */
+.workspace > .controls #speed{
+    display:none !important;
+}
+
+/* Buttons */
+.workspace > .controls .check-btn,
+.workspace > .controls .clear-btn{
+    flex:0 0 auto !important;
+    height:38px !important;
+    padding:0 13px !important;
+
+    border-radius:8px !important;
+    font-size:10px !important;
+    font-weight:800 !important;
+    letter-spacing:.3px !important;
+    white-space:nowrap !important;
+}
+
+/* Check */
+.workspace > .controls .check-btn{
+    background:#1769d2 !important;
+    color:white !important;
+    border:1px solid #1769d2 !important;
+}
+
+/* Clear */
+.workspace > .controls .clear-btn{
+    background:#f5f7fa !important;
+    color:#42556b !important;
+    border:1px solid #ccd6e2 !important;
+}
+
+/* Error */
+.workspace > .controls .error{
+    margin:5px 0 0 !important;
+    font-size:11px !important;
+}
+
+/* Smaller on small screens */
+@media(max-width:700px){
+    .workspace > .controls{
+        top:10px !important;
+        left:10px !important;
+        width:calc(100% - 20px) !important;
     }
 }
 </style>
@@ -580,10 +1141,10 @@ function initializeMap(){
     worldLayer=L.geoJSON(countries,{
         pane:"worldPane",
         style:()=>({
-            color:"#52657a",
+            color:"#9aa9b8",
             weight:1,
             opacity:1,
-            fillColor:"#172536",
+            fillColor:"#e9eef3",
             fillOpacity:1
         }),
         onEachFeature:(feature,layer)=>{
