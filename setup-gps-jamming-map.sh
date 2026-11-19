@@ -294,10 +294,10 @@ export default function InterferenceLayer({ hexes }: Props) {
         const colour = colours[properties?.c ?? ''] ?? '#ed493f';
         return {
           color: colour,
-          weight: 0.8,
-          opacity: 0.95,
+          weight: 1.25,
+          opacity: 1,
           fillColor: colour,
-          fillOpacity: 0.48,
+          fillOpacity: 0.62,
           interactive: true,
         };
       },
@@ -354,8 +354,8 @@ export default function MapView({ hexes, route, origin, destination }: Props) {
   return (
     <MapContainer center={[22, 10]} zoom={2} minZoom={2} maxZoom={10} worldCopyJump preferCanvas>
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <InterferenceLayer hexes={hexes} />
       {route && <Polyline positions={route} pathOptions={{ color: '#1769e0', weight: 4, opacity: 0.95 }} />}
