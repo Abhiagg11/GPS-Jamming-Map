@@ -354,8 +354,8 @@ export default function MapView({ hexes, route, origin, destination }: Props) {
   return (
     <MapContainer center={[22, 10]} zoom={2} minZoom={2} maxZoom={10} worldCopyJump preferCanvas>
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='Tiles &copy; <a href="https://www.esri.com/">Esri</a> | Sources: Esri, HERE, Garmin, USGS, Intermap, NRCAN, METI, and the GIS User Community'
+        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
       />
       <InterferenceLayer hexes={hexes} />
       {route && <Polyline positions={route} pathOptions={{ color: '#1769e0', weight: 4, opacity: 0.95 }} />}
