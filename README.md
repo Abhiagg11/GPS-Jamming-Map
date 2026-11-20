@@ -1,2 +1,5 @@
 # GPS-Jamming-Map
 GPS Jamming Map
+
+
+--- running command npm run dev -- --host 0.0.0.0
