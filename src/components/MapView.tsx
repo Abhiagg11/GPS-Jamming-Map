@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import {
   CircleMarker,
@@ -8,8 +7,7 @@ import {
   Tooltip,
   useMap,
 } from 'react-leaflet';
-
-import type { Airport, InterferenceHex } from '../lib/types';
+import type { ActiveSeverity, Airport, InterferenceHex } from '../lib/types';
 import InterferenceLayer from './InterferenceLayer';
 
 interface Props {
@@ -18,24 +16,44 @@ interface Props {
   origin: Airport | null;
   destination: Airport | null;
   darkMode: boolean;
+  visibleSeverities: Record<ActiveSeverity, boolean>;
+  highlightedCellIds?: Set<string>;
+  focusTarget: { lat: number; lon: number; nonce: number } | null;
+  resetNonce: number;
 }
 
-function FitRoute({
+function MapController({
   route,
+  focusTarget,
+  resetNonce,
 }: {
   route: [number, number][] | null;
+  focusTarget: { lat: number; lon: number; nonce: number } | null;
+  resetNonce: number;
 }) {
   const map = useMap();
 
   useEffect(() => {
     if (route?.length) {
       map.fitBounds(route, {
-        padding: [38, 38],
+        padding: [42, 42],
         maxZoom: 6,
         animate: true,
       });
     }
   }, [map, route]);
+
+  useEffect(() => {
+    if (focusTarget) {
+      map.setView([focusTarget.lat, focusTarget.lon], 6, { animate: true });
+    }
+  }, [map, focusTarget]);
+
+  useEffect(() => {
+    if (resetNonce > 0) {
+      map.setView([22, 10], 2, { animate: true });
+    }
+  }, [map, resetNonce]);
 
   return null;
 }
@@ -46,6 +64,10 @@ export default function MapView({
   origin,
   destination,
   darkMode,
+  visibleSeverities,
+  highlightedCellIds,
+  focusTarget,
+  resetNonce,
 }: Props) {
   return (
     <MapContainer
@@ -58,15 +80,12 @@ export default function MapView({
     >
       {darkMode ? (
         <>
-          {/* Dark map background */}
           <TileLayer
             key="esri-dark-base"
-            attribution='Tiles &copy; Esri, HERE, Garmin, OpenStreetMap contributors'
+            attribution="Tiles &copy; Esri, HERE, Garmin, OpenStreetMap contributors"
             url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
             maxZoom={16}
           />
-
-          {/* Dark map labels and boundaries */}
           <TileLayer
             key="esri-dark-reference"
             attribution=""
@@ -75,37 +94,46 @@ export default function MapView({
           />
         </>
       ) : (
-        /* Existing working light map */
         <TileLayer
           key="esri-light"
-          attribution='Tiles &copy; <a href="https://www.esri.com/">Esri</a> | Sources: Esri, HERE, Garmin, USGS, Intermap, NRCAN, METI, and the GIS User Community'
+          attribution="Tiles &copy; <a href='https://www.esri.com/'>Esri</a> | Sources: Esri, HERE, Garmin, USGS, Intermap, NRCAN, METI, and the GIS User Community"
           url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
           maxZoom={18}
         />
       )}
 
-      {/* Interference indicators */}
-      <InterferenceLayer hexes={hexes} />
+      <InterferenceLayer
+        hexes={hexes}
+        visibleSeverities={visibleSeverities}
+        highlightedCellIds={highlightedCellIds}
+        darkMode={darkMode}
+      />
 
-      {/* Flight route */}
       {route && (
-        <Polyline
-          positions={route}
-          pathOptions={{
-            color: darkMode ? '#58a0ff' : '#1769e0',
-            weight: 4,
-            opacity: 0.95,
-          }}
-        />
+        <>
+          <Polyline
+            positions={route}
+            pathOptions={{
+              color: darkMode ? '#58a0ff' : '#1769e0',
+              weight: 8,
+              opacity: 0.22,
+            }}
+          />
+          <Polyline
+            positions={route}
+            pathOptions={{
+              color: darkMode ? '#75b2ff' : '#1769e0',
+              weight: 3.5,
+              opacity: 0.96,
+              dashArray: '8 6',
+            }}
+          />
+        </>
       )}
 
-      {/* Departure airport */}
       {origin && (
         <CircleMarker
-          center={[
-            origin.latitude_deg,
-            origin.longitude_deg,
-          ]}
+          center={[origin.latitude_deg, origin.longitude_deg]}
           radius={7}
           pathOptions={{
             color: '#ffffff',
@@ -120,13 +148,9 @@ export default function MapView({
         </CircleMarker>
       )}
 
-      {/* Arrival airport */}
       {destination && (
         <CircleMarker
-          center={[
-            destination.latitude_deg,
-            destination.longitude_deg,
-          ]}
+          center={[destination.latitude_deg, destination.longitude_deg]}
           radius={7}
           pathOptions={{
             color: '#ffffff',
@@ -141,7 +165,11 @@ export default function MapView({
         </CircleMarker>
       )}
 
-      <FitRoute route={route} />
+      <MapController
+        route={route}
+        focusTarget={focusTarget}
+        resetNonce={resetNonce}
+      />
     </MapContainer>
   );
 }

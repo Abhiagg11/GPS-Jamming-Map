@@ -1,3 +1,6 @@
+export type SeverityCode = 'g' | 'y' | 'r' | 'p' | 'purple';
+export type ActiveSeverity = 'y' | 'r' | 'p';
+
 export interface Airport {
   iata_code: string;
   name: string;
@@ -22,4 +25,15 @@ export interface InterferenceResponse {
   updated?: string;
   attribution?: string;
   hexes: InterferenceHex[];
+}
+
+export interface RouteAnalysis {
+  distanceKm: number;
+  corridorKm: number;
+  nearbyHexes: InterferenceHex[];
+  moderateCount: number;
+  highCount: number;
+  veryHighCount: number;
+  maxSeverity: ActiveSeverity | null;
+  hottestHex: InterferenceHex | null;
 }
