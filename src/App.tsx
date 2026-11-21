@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeftRight,
+  Check,
   ChevronDown,
   ChevronUp,
+  Copy,
   Crosshair,
   Download,
   Flame,
+  Layers,
   LoaderCircle,
   Moon,
   Plane,
@@ -14,12 +17,13 @@ import {
   RefreshCw,
   Route as RouteIcon,
   Satellite,
+  ShieldCheck,
   SlidersHorizontal,
   Sun,
   X,
 } from 'lucide-react';
 
-import MapView from './components/MapView';
+import MapView, { type BasemapStyle } from './components/MapView';
 import { findAirport, searchAirports } from './lib/airports';
 import {
   analyzeRouteInterference,
@@ -41,12 +45,17 @@ const PRESET_ROUTES: [string, string, string][] = [
 ];
 
 const CORRIDOR_OPTIONS = [50, 150, 300];
+const BASEMAP_OPTIONS: { id: BasemapStyle; label: string }[] = [
+  { id: 'street', label: 'Street' },
+  { id: 'topo', label: 'Topo' },
+  { id: 'satellite', label: 'Satellite' },
+];
 
 function severityLabel(sev: ActiveSeverity | null): string {
   if (sev === 'p') return 'Very high';
   if (sev === 'r') return 'High';
   if (sev === 'y') return 'Moderate';
-  return 'None in corridor';
+  return 'Clear';
 }
 
 function readInitialParams() {
@@ -56,6 +65,11 @@ function readInitialParams() {
   const to = (params.get('to') || 'BOM').trim().toUpperCase().slice(0, 24);
   const rawCorridor = Number(params.get('corridor'));
   const corridor = CORRIDOR_OPTIONS.includes(rawCorridor) ? rawCorridor : 150;
+  const rawMap = params.get('map');
+  const basemap: BasemapStyle =
+    rawMap === 'topo' || rawMap === 'satellite' || rawMap === 'street'
+      ? rawMap
+      : 'street';
   const themeParam = params.get('theme');
   const dark =
     themeParam === 'dark'
@@ -64,7 +78,7 @@ function readInitialParams() {
         ? false
         : localStorage.getItem('gps-monitor-theme') === 'dark';
 
-  return { from, via, to, corridor, dark };
+  return { from, via, to, corridor, basemap, dark };
 }
 
 async function fetchInterferenceFeed(): Promise<InterferenceResponse> {
@@ -86,9 +100,15 @@ async function fetchInterferenceFeed(): Promise<InterferenceResponse> {
 
 export default function App() {
   const initial = useMemo(() => readInitialParams(), []);
+  const fromInputRef = useRef<HTMLInputElement | null>(null);
 
   const [darkMode, setDarkMode] = useState(initial.dark);
+  const [basemap, setBasemap] = useState<BasemapStyle>(initial.basemap);
   const [mobilePanelOpen, setMobilePanelOpen] = useState(true);
+
+  const [summaryOpen, setSummaryOpen] = useState(true);
+  const [legendOpen, setLegendOpen] = useState(true);
+  const [feedOpen, setFeedOpen] = useState(true);
 
   const [fromCode, setFromCode] = useState(initial.from);
   const [viaCode, setViaCode] = useState(initial.via);
@@ -102,6 +122,8 @@ export default function App() {
   const [stops, setStops] = useState<Airport[]>([]);
   const [route, setRoute] = useState<[number, number][] | null>(null);
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [hexes, setHexes] = useState<InterferenceHex[]>([]);
   const [historyDate, setHistoryDate] = useState('');
@@ -127,12 +149,47 @@ export default function App() {
   } | null>(null);
   const [resetNonce, setResetNonce] = useState(0);
 
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg);
+  }, []);
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const id = window.setTimeout(() => setToastMessage(null), 2200);
+    return () => window.clearTimeout(id);
+  }, [toastMessage]);
+
   useEffect(() => {
     localStorage.setItem('gps-monitor-theme', darkMode ? 'dark' : 'light');
     const url = new URL(window.location.href);
     url.searchParams.set('theme', darkMode ? 'dark' : 'light');
+    url.searchParams.set('map', basemap);
     window.history.replaceState({}, '', url.toString());
-  }, [darkMode]);
+  }, [darkMode, basemap]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const isTyping =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable);
+      if (isTyping || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === '/') {
+        e.preventDefault();
+        setMobilePanelOpen(true);
+        fromInputRef.current?.focus();
+      } else if (e.key.toLowerCase() === 'd') {
+        setDarkMode((prev) => !prev);
+      } else if (e.key.toLowerCase() === 'r') {
+        resetMap();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
 
   useEffect(() => {
     let active = true;
@@ -252,7 +309,20 @@ export default function App() {
     if (t) url.searchParams.set('to', t);
     else url.searchParams.delete('to');
     url.searchParams.set('corridor', String(c));
+    url.searchParams.set('map', basemap);
     window.history.replaceState({}, '', url.toString());
+  }
+
+  async function copyShareLink() {
+    syncRouteUrl(fromCode, viaCode, toCode, corridorKm);
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      showToast('Share link copied to clipboard');
+      window.setTimeout(() => setCopiedLink(false), 1800);
+    } catch {
+      showToast('Could not copy link automatically');
+    }
   }
 
   async function plotRoute(
@@ -298,6 +368,7 @@ export default function App() {
 
       setStops(resolvedStops);
       setRoute(multiLegRoute(resolvedStops));
+      setSummaryOpen(true);
       setFromCode(from.iata_code);
       setViaCode(via ? via.iata_code : '');
       setToCode(to.iata_code);
@@ -338,18 +409,24 @@ export default function App() {
     setStops([]);
     setSelectedCellId(null);
     setRouteError('');
+    showToast('Active route cleared');
   }
 
   function resetMap() {
-    clearRouteOnly();
+    setRoute(null);
+    setStops([]);
+    setSelectedCellId(null);
+    setRouteError('');
     setFocusTarget(null);
     setFromCode('DEL');
     setViaCode('');
     setToCode('BOM');
     setCorridorKm(150);
+    setBasemap('street');
     setVisibleSeverities({ y: true, r: true, p: true });
     setResetNonce((n) => n + 1);
     syncRouteUrl('DEL', '', 'BOM', 150);
+    showToast('Map reset to worldwide view');
   }
 
   function exportReport(format: 'json' | 'csv') {
@@ -389,6 +466,7 @@ export default function App() {
         type: 'application/json',
       });
       triggerDownload(blob, `gnss-route-${stopSummary}.json`);
+      showToast('Exported route summary (JSON)');
       return;
     }
 
@@ -407,6 +485,7 @@ export default function App() {
     ];
     const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
     triggerDownload(blob, `gnss-route-${stopSummary}.csv`);
+    showToast('Exported top hotspots (CSV)');
   }
 
   function triggerDownload(blob: Blob, filename: string) {
@@ -420,9 +499,15 @@ export default function App() {
   }
 
   const totalNearby = routeAnalysis?.nearbyHexes.length ?? 0;
-  const modPct = totalNearby ? ((routeAnalysis!.moderateCount / totalNearby) * 100).toFixed(0) : '0';
-  const highPct = totalNearby ? ((routeAnalysis!.highCount / totalNearby) * 100).toFixed(0) : '0';
-  const vhPct = totalNearby ? ((routeAnalysis!.veryHighCount / totalNearby) * 100).toFixed(0) : '0';
+  const modPct = totalNearby
+    ? ((routeAnalysis!.moderateCount / totalNearby) * 100).toFixed(0)
+    : '0';
+  const highPct = totalNearby
+    ? ((routeAnalysis!.highCount / totalNearby) * 100).toFixed(0)
+    : '0';
+  const vhPct = totalNearby
+    ? ((routeAnalysis!.veryHighCount / totalNearby) * 100).toFixed(0)
+    : '0';
 
   return (
     <main className={`app-shell ${darkMode ? 'dark-theme' : ''}`}>
@@ -451,7 +536,7 @@ export default function App() {
             aria-expanded={mobilePanelOpen}
           >
             <SlidersHorizontal size={15} />
-            <span>Controls</span>
+            <span>{mobilePanelOpen ? 'Hide' : 'Controls'}</span>
             {mobilePanelOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
 
@@ -460,7 +545,7 @@ export default function App() {
             type="button"
             onClick={() => setDarkMode((current) => !current)}
             aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={darkMode ? 'Switch to light mode (D)' : 'Switch to dark mode (D)'}
           >
             {darkMode ? <Sun size={17} /> : <Moon size={17} />}
             <span>{darkMode ? 'Light mode' : 'Dark mode'}</span>
@@ -469,14 +554,16 @@ export default function App() {
       </header>
 
       <div className="workspace">
-        <aside className={`control-panel ${mobilePanelOpen ? 'is-open' : 'is-collapsed'}`}>
+        <aside
+          className={`control-panel ${mobilePanelOpen ? 'is-open' : 'is-collapsed'}`}
+        >
           <div className="panel-heading">
             <div className="panel-icon">
               <RouteIcon size={17} />
             </div>
             <div>
               <h2>Route filter</h2>
-              <p>Direct or multi-leg IATA route</p>
+              <p>Search IATA, airport, or country</p>
             </div>
           </div>
 
@@ -502,6 +589,7 @@ export default function App() {
           >
             <label htmlFor="from-airport">FROM</label>
             <input
+              ref={fromInputRef}
               id="from-airport"
               value={fromCode}
               onChange={(event) =>
@@ -603,7 +691,9 @@ export default function App() {
               </div>
             )}
 
-            <label htmlFor="to-airport" className="spaced-label">TO</label>
+            <label htmlFor="to-airport" className="spaced-label">
+              TO
+            </label>
             <input
               id="to-airport"
               value={toCode}
@@ -659,6 +749,24 @@ export default function App() {
               </div>
             </div>
 
+            <div className="basemap-control">
+              <span>
+                <Layers size={11} /> Basemap layer
+              </span>
+              <div className="basemap-pills">
+                {BASEMAP_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`basemap-pill ${basemap === opt.id ? 'active' : ''}`}
+                    onClick={() => setBasemap(opt.id)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="route-action-row">
               <button
                 className="plot-button"
@@ -695,162 +803,219 @@ export default function App() {
 
           {routeAnalysis && stops.length >= 2 && (
             <section className="route-summary-card">
-              <div className="section-title">
-                <Flame size={14} />
-                <h3>Route corridor summary</h3>
-              </div>
-              <div className="summary-grid">
-                <div>
-                  <small>Total distance</small>
-                  <b>{routeAnalysis.distanceKm.toLocaleString()} km</b>
-                </div>
-                <div>
-                  <small>Peak level</small>
-                  <b>{severityLabel(routeAnalysis.maxSeverity)}</b>
-                </div>
-                <div>
-                  <small>Near cells</small>
-                  <b>{routeAnalysis.nearbyHexes.length}</b>
-                </div>
-                <div>
-                  <small>Mod / High / VH</small>
-                  <b>
-                    {routeAnalysis.moderateCount} / {routeAnalysis.highCount} /{' '}
-                    {routeAnalysis.veryHighCount}
-                  </b>
-                </div>
-              </div>
-
-              {totalNearby > 0 && (
-                <div className="severity-bar" title={`Mod ${modPct}% · High ${highPct}% · Very high ${vhPct}%`}>
-                  <span style={{ width: `${modPct}%`, background: '#f2c230' }} />
-                  <span style={{ width: `${highPct}%`, background: '#ed493f' }} />
-                  <span style={{ width: `${vhPct}%`, background: '#9638c8' }} />
-                </div>
-              )}
-
-              {routeAnalysis.hottestHex && (
+              <div className="collapsible-header">
                 <button
                   type="button"
-                  className="focus-hot-btn"
-                  onClick={() => focusHex(routeAnalysis.hottestHex!)}
+                  className="section-toggle-btn"
+                  onClick={() => setSummaryOpen((o) => !o)}
+                  aria-expanded={summaryOpen}
                 >
-                  <Crosshair size={13} />
-                  Focus highest cell ({routeAnalysis.hottestHex.h})
+                  <Flame size={14} />
+                  <h3>Corridor analysis</h3>
+                  {summaryOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                 </button>
-              )}
+                <button
+                  type="button"
+                  className="copy-link-btn"
+                  onClick={() => void copyShareLink()}
+                  title="Copy shareable route URL"
+                >
+                  {copiedLink ? <Check size={11} /> : <Copy size={11} />}
+                  <span>{copiedLink ? 'Copied' : 'Share'}</span>
+                </button>
+              </div>
 
-              {routeAnalysis.hotspots.length > 0 && (
-                <div className="hotspot-list">
-                  <div className="hotspot-heading">Top cells near corridor</div>
-                  {routeAnalysis.hotspots.map((hs) => (
+              {summaryOpen && (
+                <>
+                  <div className="summary-grid">
+                    <div>
+                      <small>Total distance</small>
+                      <b>{routeAnalysis.distanceKm.toLocaleString()} km</b>
+                    </div>
+                    <div>
+                      <small>Peak level</small>
+                      <b>{severityLabel(routeAnalysis.maxSeverity)}</b>
+                    </div>
+                    <div>
+                      <small>Near cells</small>
+                      <b>{routeAnalysis.nearbyHexes.length}</b>
+                    </div>
+                    <div>
+                      <small>Mod / High / VH</small>
+                      <b>
+                        {routeAnalysis.moderateCount} / {routeAnalysis.highCount} /{' '}
+                        {routeAnalysis.veryHighCount}
+                      </b>
+                    </div>
+                  </div>
+
+                  {totalNearby > 0 ? (
+                    <>
+                      <div
+                        className="severity-bar"
+                        title={`Mod ${modPct}% · High ${highPct}% · Very high ${vhPct}%`}
+                      >
+                        <span style={{ width: `${modPct}%`, background: '#f2c230' }} />
+                        <span style={{ width: `${highPct}%`, background: '#ed493f' }} />
+                        <span style={{ width: `${vhPct}%`, background: '#9638c8' }} />
+                      </div>
+
+                      {routeAnalysis.hottestHex && (
+                        <button
+                          type="button"
+                          className="focus-hot-btn"
+                          onClick={() => focusHex(routeAnalysis.hottestHex!)}
+                        >
+                          <Crosshair size={13} />
+                          Focus highest cell ({routeAnalysis.hottestHex.h})
+                        </button>
+                      )}
+
+                      {routeAnalysis.hotspots.length > 0 && (
+                        <div className="hotspot-list">
+                          <div className="hotspot-heading">Top cells near corridor</div>
+                          {routeAnalysis.hotspots.map((hs) => (
+                            <button
+                              key={hs.hex.h}
+                              type="button"
+                              className={`hotspot-row ${selectedCellId === hs.hex.h ? 'selected' : ''}`}
+                              onClick={() => focusHex(hs.hex)}
+                            >
+                              <span className={`sev-dot sev-${hs.severity}`} />
+                              <span className="hs-cell">{hs.hex.h}</span>
+                              <span className="hs-meta">
+                                {Number(hs.hex.p || 0).toFixed(0)}% · {hs.minDistanceKm}km
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="clear-corridor-note">
+                      <ShieldCheck size={14} />
+                      <span>
+                        No interference cells within {routeAnalysis.corridorKm} km of this path.
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="export-row">
                     <button
-                      key={hs.hex.h}
                       type="button"
-                      className={`hotspot-row ${selectedCellId === hs.hex.h ? 'selected' : ''}`}
-                      onClick={() => focusHex(hs.hex)}
+                      className="export-btn"
+                      onClick={() => exportReport('json')}
                     >
-                      <span className={`sev-dot sev-${hs.severity}`} />
-                      <span className="hs-cell">{hs.hex.h}</span>
-                      <span className="hs-meta">{hs.minDistanceKm} km</span>
+                      <Download size={12} /> JSON
                     </button>
-                  ))}
-                </div>
+                    <button
+                      type="button"
+                      className="export-btn"
+                      onClick={() => exportReport('csv')}
+                    >
+                      <Download size={12} /> CSV
+                    </button>
+                  </div>
+                </>
               )}
-
-              <div className="export-row">
-                <button
-                  type="button"
-                  className="export-btn"
-                  onClick={() => exportReport('json')}
-                >
-                  <Download size={12} /> JSON
-                </button>
-                <button
-                  type="button"
-                  className="export-btn"
-                  onClick={() => exportReport('csv')}
-                >
-                  <Download size={12} /> CSV
-                </button>
-              </div>
             </section>
           )}
 
           <div className="panel-divider" />
 
           <section className="legend-section">
-            <div className="section-title">
+            <button
+              type="button"
+              className="section-toggle-btn"
+              onClick={() => setLegendOpen((o) => !o)}
+              aria-expanded={legendOpen}
+            >
               <RadioTower size={15} />
-              <h3>Interference indicators (click to toggle)</h3>
-            </div>
+              <h3>Severity layers</h3>
+              {legendOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
 
-            {(
-              [
-                ['y', 'moderate', 'Moderate'],
-                ['r', 'high', 'High'],
-                ['p', 'very-high', 'Very high'],
-              ] as const
-            ).map(([code, swatchClass, label]) => {
-              const enabled = visibleSeverities[code];
-              return (
-                <button
-                  key={code}
-                  type="button"
-                  className={`legend-toggle ${enabled ? 'is-on' : 'is-off'}`}
-                  onClick={() => toggleSeverity(code)}
-                >
-                  <span className={`legend-swatch ${swatchClass}`} />
-                  <span>{label}</span>
-                  <span className="legend-state">{enabled ? 'On' : 'Off'}</span>
-                </button>
-              );
-            })}
+            {legendOpen && (
+              <div className="legend-items">
+                {(
+                  [
+                    ['y', 'moderate', 'Moderate'],
+                    ['r', 'high', 'High'],
+                    ['p', 'very-high', 'Very high'],
+                  ] as const
+                ).map(([code, swatchClass, label]) => {
+                  const enabled = visibleSeverities[code];
+                  return (
+                    <button
+                      key={code}
+                      type="button"
+                      className={`legend-toggle ${enabled ? 'is-on' : 'is-off'}`}
+                      onClick={() => toggleSeverity(code)}
+                    >
+                      <span className={`legend-swatch ${swatchClass}`} />
+                      <span>{label}</span>
+                      <span className="legend-state">{enabled ? 'On' : 'Off'}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           <div className="panel-divider" />
 
           <section className="feed-section">
-            <div className="section-title">
+            <button
+              type="button"
+              className="section-toggle-btn"
+              onClick={() => setFeedOpen((o) => !o)}
+              aria-expanded={feedOpen}
+            >
               <Crosshair size={15} />
               <h3>Data feed</h3>
-            </div>
+              {feedOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
 
-            {loadingData ? (
-              <p className="feed-message">
-                <LoaderCircle className="spin" size={14} />
-                Loading global data…
-              </p>
-            ) : dataError ? (
-              <p className="feed-error">
-                <AlertCircle size={14} />
-                Feed unavailable
-              </p>
-            ) : (
+            {feedOpen && (
               <>
-                <div className="feed-stat">
-                  <strong>{hexes.length.toLocaleString()}</strong>
-                  <span>hexagons loaded</span>
-                </div>
-
-                <div className="feed-stat">
-                  <strong>{affectedHexes.toLocaleString()}</strong>
-                  <span>affected indicators</span>
-                </div>
-
-                {historyDate && (
-                  <p className="feed-date">Flight data: {historyDate}</p>
-                )}
-
-                {updatedAt && (
-                  <p className="feed-date">
-                    Updated: {new Date(updatedAt).toLocaleString()}
+                {loadingData ? (
+                  <div className="skeleton-stack" aria-label="Loading feed statistics">
+                    <div className="skeleton-line wide" />
+                    <div className="skeleton-line" />
+                    <div className="skeleton-line short" />
+                  </div>
+                ) : dataError ? (
+                  <p className="feed-error">
+                    <AlertCircle size={14} />
+                    Feed unavailable
                   </p>
+                ) : (
+                  <>
+                    <div className="feed-stat">
+                      <strong>{hexes.length.toLocaleString()}</strong>
+                      <span>hexagons loaded</span>
+                    </div>
+
+                    <div className="feed-stat">
+                      <strong>{affectedHexes.toLocaleString()}</strong>
+                      <span>affected indicators</span>
+                    </div>
+
+                    {historyDate && (
+                      <p className="feed-date">Flight data: {historyDate}</p>
+                    )}
+
+                    {updatedAt && (
+                      <p className="feed-date">
+                        Updated: {new Date(updatedAt).toLocaleString()}
+                      </p>
+                    )}
+                  </>
                 )}
+
+                {dataError && <p className="feed-error-detail">{dataError}</p>}
               </>
             )}
-
-            {dataError && <p className="feed-error-detail">{dataError}</p>}
           </section>
 
           <button className="reset-button" type="button" onClick={resetMap}>
@@ -859,7 +1024,7 @@ export default function App() {
           </button>
 
           <div className="panel-note">
-            Route is a great-circle estimate, not a filed flight plan.
+            Shortcuts: <b>/</b> search · <b>D</b> theme · <b>R</b> reset. Great-circle estimate only.
           </div>
         </aside>
 
@@ -872,6 +1037,7 @@ export default function App() {
             route={route}
             stops={stops}
             darkMode={darkMode}
+            basemap={basemap}
             visibleSeverities={visibleSeverities}
             highlightedCellIds={highlightedCellIds}
             selectedCellId={selectedCellId}
@@ -885,8 +1051,16 @@ export default function App() {
               <strong>{stops.map((s) => s.iata_code).join(' → ')}</strong>
               <span>
                 {stops[0].name} to {stops[stops.length - 1].name}
-                {routeAnalysis ? ` · ${routeAnalysis.distanceKm.toLocaleString()} km` : ''}
+                {routeAnalysis
+                  ? ` · ${routeAnalysis.distanceKm.toLocaleString()} km · ${totalNearby} cells`
+                  : ''}
               </span>
+            </div>
+          )}
+
+          {toastMessage && (
+            <div className="toast-pill" role="status" aria-live="polite">
+              {toastMessage}
             </div>
           )}
 

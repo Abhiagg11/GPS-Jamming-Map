@@ -10,11 +10,14 @@ import {
 import type { ActiveSeverity, Airport, InterferenceHex } from '../lib/types';
 import InterferenceLayer from './InterferenceLayer';
 
+export type BasemapStyle = 'street' | 'topo' | 'satellite';
+
 interface Props {
   hexes: InterferenceHex[];
   route: [number, number][] | null;
   stops: Airport[];
   darkMode: boolean;
+  basemap: BasemapStyle;
   visibleSeverities: Record<ActiveSeverity, boolean>;
   highlightedCellIds?: Set<string>;
   selectedCellId?: string | null;
@@ -36,7 +39,7 @@ function MapController({
   useEffect(() => {
     if (route?.length) {
       map.fitBounds(route, {
-        padding: [42, 42],
+        padding: [44, 44],
         maxZoom: 6,
         animate: true,
       });
@@ -65,6 +68,7 @@ export default function MapView({
   route,
   stops,
   darkMode,
+  basemap,
   visibleSeverities,
   highlightedCellIds,
   selectedCellId,
@@ -80,7 +84,29 @@ export default function MapView({
       worldCopyJump
       preferCanvas
     >
-      {darkMode ? (
+      {basemap === 'satellite' ? (
+        <>
+          <TileLayer
+            key="esri-imagery"
+            attribution="Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={18}
+          />
+          <TileLayer
+            key="esri-imagery-labels"
+            attribution=""
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={18}
+          />
+        </>
+      ) : basemap === 'topo' ? (
+        <TileLayer
+          key={`esri-topo-${darkMode ? 'dark' : 'light'}`}
+          attribution="Tiles &copy; Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community"
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={18}
+        />
+      ) : darkMode ? (
         <>
           <TileLayer
             key="esri-dark-base"
@@ -109,7 +135,7 @@ export default function MapView({
         visibleSeverities={visibleSeverities}
         highlightedCellIds={highlightedCellIds}
         selectedCellId={selectedCellId}
-        darkMode={darkMode}
+        darkMode={darkMode || basemap === 'satellite'}
       />
 
       {route && (
@@ -117,17 +143,17 @@ export default function MapView({
           <Polyline
             positions={route}
             pathOptions={{
-              color: darkMode ? '#58a0ff' : '#1769e0',
-              weight: 8,
-              opacity: 0.22,
+              color: darkMode || basemap === 'satellite' ? '#60a5fa' : '#1769e0',
+              weight: 9,
+              opacity: 0.24,
             }}
           />
           <Polyline
             positions={route}
             pathOptions={{
-              color: darkMode ? '#75b2ff' : '#1769e0',
+              color: darkMode || basemap === 'satellite' ? '#93c5fd' : '#1769e0',
               weight: 3.5,
-              opacity: 0.96,
+              opacity: 0.98,
               dashArray: '8 6',
             }}
           />
@@ -143,10 +169,10 @@ export default function MapView({
           <CircleMarker
             key={`${stop.iata_code}-${idx}`}
             center={[stop.latitude_deg, stop.longitude_deg]}
-            radius={isFirst || isLast ? 7 : 6}
+            radius={isFirst || isLast ? 7.5 : 6}
             pathOptions={{
               color: '#ffffff',
-              weight: 2,
+              weight: 2.2,
               fillColor,
               fillOpacity: 1,
             }}
