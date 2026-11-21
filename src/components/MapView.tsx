@@ -13,12 +13,12 @@ import InterferenceLayer from './InterferenceLayer';
 interface Props {
   hexes: InterferenceHex[];
   route: [number, number][] | null;
-  origin: Airport | null;
-  destination: Airport | null;
+  stops: Airport[];
   darkMode: boolean;
   visibleSeverities: Record<ActiveSeverity, boolean>;
   highlightedCellIds?: Set<string>;
-  focusTarget: { lat: number; lon: number; nonce: number } | null;
+  selectedCellId?: string | null;
+  focusTarget: { lat: number; lon: number; zoom?: number; nonce: number } | null;
   resetNonce: number;
 }
 
@@ -28,7 +28,7 @@ function MapController({
   resetNonce,
 }: {
   route: [number, number][] | null;
-  focusTarget: { lat: number; lon: number; nonce: number } | null;
+  focusTarget: { lat: number; lon: number; zoom?: number; nonce: number } | null;
   resetNonce: number;
 }) {
   const map = useMap();
@@ -45,7 +45,9 @@ function MapController({
 
   useEffect(() => {
     if (focusTarget) {
-      map.setView([focusTarget.lat, focusTarget.lon], 6, { animate: true });
+      map.setView([focusTarget.lat, focusTarget.lon], focusTarget.zoom ?? 6, {
+        animate: true,
+      });
     }
   }, [map, focusTarget]);
 
@@ -61,11 +63,11 @@ function MapController({
 export default function MapView({
   hexes,
   route,
-  origin,
-  destination,
+  stops,
   darkMode,
   visibleSeverities,
   highlightedCellIds,
+  selectedCellId,
   focusTarget,
   resetNonce,
 }: Props) {
@@ -106,6 +108,7 @@ export default function MapView({
         hexes={hexes}
         visibleSeverities={visibleSeverities}
         highlightedCellIds={highlightedCellIds}
+        selectedCellId={selectedCellId}
         darkMode={darkMode}
       />
 
@@ -131,39 +134,29 @@ export default function MapView({
         </>
       )}
 
-      {origin && (
-        <CircleMarker
-          center={[origin.latitude_deg, origin.longitude_deg]}
-          radius={7}
-          pathOptions={{
-            color: '#ffffff',
-            weight: 2,
-            fillColor: '#1769e0',
-            fillOpacity: 1,
-          }}
-        >
-          <Tooltip permanent direction="top">
-            {origin.iata_code}
-          </Tooltip>
-        </CircleMarker>
-      )}
+      {stops.map((stop, idx) => {
+        const isFirst = idx === 0;
+        const isLast = idx === stops.length - 1;
+        const fillColor = isFirst ? '#1769e0' : isLast ? '#0f9d68' : '#d97706';
 
-      {destination && (
-        <CircleMarker
-          center={[destination.latitude_deg, destination.longitude_deg]}
-          radius={7}
-          pathOptions={{
-            color: '#ffffff',
-            weight: 2,
-            fillColor: '#0f9d68',
-            fillOpacity: 1,
-          }}
-        >
-          <Tooltip permanent direction="top">
-            {destination.iata_code}
-          </Tooltip>
-        </CircleMarker>
-      )}
+        return (
+          <CircleMarker
+            key={`${stop.iata_code}-${idx}`}
+            center={[stop.latitude_deg, stop.longitude_deg]}
+            radius={isFirst || isLast ? 7 : 6}
+            pathOptions={{
+              color: '#ffffff',
+              weight: 2,
+              fillColor,
+              fillOpacity: 1,
+            }}
+          >
+            <Tooltip permanent direction="top">
+              {stop.iata_code}
+            </Tooltip>
+          </CircleMarker>
+        );
+      })}
 
       <MapController
         route={route}

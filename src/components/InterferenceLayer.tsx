@@ -8,6 +8,7 @@ interface Props {
   hexes: InterferenceHex[];
   visibleSeverities: Record<ActiveSeverity, boolean>;
   highlightedCellIds?: Set<string>;
+  selectedCellId?: string | null;
   darkMode: boolean;
 }
 
@@ -23,47 +24,66 @@ function labelForSeverity(sev: ActiveSeverity): string {
   return 'Very high indicator';
 }
 
+interface PreparedHexFeature {
+  hex: InterferenceHex;
+  severity: ActiveSeverity;
+  feature: GeoJSON.Feature<GeoJSON.Polygon, InterferenceHex>;
+}
+
 export default function InterferenceLayer({
   hexes,
   visibleSeverities,
   highlightedCellIds,
+  selectedCellId,
   darkMode,
 }: Props) {
   const map = useMap();
 
-  const filteredHexes = useMemo(
+  // Build polygon geometries once when hexes change
+  const preparedAll = useMemo<PreparedHexFeature[]>(() => {
+    const list: PreparedHexFeature[] = [];
+    for (const hex of hexes) {
+      const severity = normalizeSeverity(hex.c);
+      if (!severity) continue;
+      if (!Array.isArray(hex.poly) || hex.poly.length < 4) continue;
+
+      const ring: [number, number][] = [
+        ...hex.poly.map(([lat, lon]): [number, number] => [lon, lat]),
+        [hex.poly[0][1], hex.poly[0][0]],
+      ];
+
+      list.push({
+        hex,
+        severity,
+        feature: {
+          type: 'Feature',
+          properties: hex,
+          geometry: {
+            type: 'Polygon',
+            coordinates: [ring],
+          },
+        },
+      });
+    }
+    return list;
+  }, [hexes]);
+
+  const activeFeatures = useMemo(
     () =>
-      hexes.filter((hex) => {
-        const sev = normalizeSeverity(hex.c);
-        return sev !== null && visibleSeverities[sev];
-      }),
-    [hexes, visibleSeverities]
+      preparedAll
+        .filter((item) => visibleSeverities[item.severity])
+        .map((item) => item.feature),
+    [preparedAll, visibleSeverities]
   );
 
   useEffect(() => {
-    if (!filteredHexes.length) return;
+    if (!activeFeatures.length) return;
 
     const canvasRenderer = L.canvas({ padding: 0.5 });
 
-    const features: GeoJSON.Feature<GeoJSON.Polygon, InterferenceHex>[] = filteredHexes
-      .filter((hex) => Array.isArray(hex.poly) && hex.poly.length >= 4)
-      .map((hex) => ({
-        type: 'Feature',
-        properties: hex,
-        geometry: {
-          type: 'Polygon',
-          coordinates: [
-            [
-              ...hex.poly.map(([lat, lon]) => [lon, lat]),
-              [hex.poly[0][1], hex.poly[0][0]],
-            ],
-          ],
-        },
-      }));
-
     const geoJsonData: GeoJSON.FeatureCollection<GeoJSON.Polygon, InterferenceHex> = {
       type: 'FeatureCollection',
-      features,
+      features: activeFeatures,
     };
 
     const layer = L.geoJSON(geoJsonData, {
@@ -72,14 +92,21 @@ export default function InterferenceLayer({
         const sev = item ? normalizeSeverity(item.c) ?? 'r' : 'r';
         const colour = colours[sev];
         const isHighlighted = Boolean(item && highlightedCellIds?.has(item.h));
+        const isSelected = Boolean(item && selectedCellId === item.h);
 
         return {
           renderer: canvasRenderer,
-          color: isHighlighted ? (darkMode ? '#ffffff' : '#0f172a') : colour,
-          weight: isHighlighted ? 2.2 : 1.15,
+          color: isSelected
+            ? '#38bdf8'
+            : isHighlighted
+              ? darkMode
+                ? '#ffffff'
+                : '#0f172a'
+              : colour,
+          weight: isSelected ? 3 : isHighlighted ? 2.2 : 1.15,
           opacity: 1,
           fillColor: colour,
-          fillOpacity: isHighlighted ? 0.82 : 0.6,
+          fillOpacity: isSelected ? 0.9 : isHighlighted ? 0.82 : 0.6,
           interactive: true,
         };
       },
@@ -88,24 +115,23 @@ export default function InterferenceLayer({
         const sev = normalizeSeverity(item.c) ?? 'r';
         const colour = colours[sev];
         const isHighlighted = Boolean(highlightedCellIds?.has(item.h));
+        const isSelected = selectedCellId === item.h;
         const path = polygon as L.Path;
 
         polygon.on('mouseover', () => {
           path.setStyle({
-            weight: 2.4,
-            fillOpacity: 0.86,
+            weight: 2.6,
+            fillOpacity: 0.88,
           });
-          const container = map.getContainer();
-          container.style.cursor = 'pointer';
+          map.getContainer().style.cursor = 'pointer';
         });
 
         polygon.on('mouseout', () => {
           path.setStyle({
-            weight: isHighlighted ? 2.2 : 1.15,
-            fillOpacity: isHighlighted ? 0.82 : 0.6,
+            weight: isSelected ? 3 : isHighlighted ? 2.2 : 1.15,
+            fillOpacity: isSelected ? 0.9 : isHighlighted ? 0.82 : 0.6,
           });
-          const container = map.getContainer();
-          container.style.cursor = '';
+          map.getContainer().style.cursor = '';
         });
 
         const popup = `
@@ -130,6 +156,10 @@ export default function InterferenceLayer({
         `;
 
         polygon.bindPopup(popup, { maxWidth: 240 });
+
+        if (isSelected) {
+          polygon.openPopup();
+        }
       },
     });
 
@@ -139,7 +169,7 @@ export default function InterferenceLayer({
       map.getContainer().style.cursor = '';
       map.removeLayer(layer);
     };
-  }, [filteredHexes, visibleSeverities, highlightedCellIds, darkMode, map]);
+  }, [activeFeatures, highlightedCellIds, selectedCellId, darkMode, map]);
 
   return null;
 }

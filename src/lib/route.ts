@@ -1,4 +1,10 @@
-import type { ActiveSeverity, Airport, InterferenceHex, RouteAnalysis } from './types';
+import type {
+  ActiveSeverity,
+  Airport,
+  InterferenceHex,
+  RouteAnalysis,
+  RouteHotspot,
+} from './types';
 
 const EARTH_RADIUS_KM = 6371;
 const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
@@ -31,7 +37,10 @@ export function haversineKm(
   return 2 * EARTH_RADIUS_KM * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function greatCircleRoute(from: Airport, to: Airport): [number, number][] {
+export function greatCircleSegment(
+  from: Airport,
+  to: Airport
+): [number, number][] {
   const lat1 = toRadians(from.latitude_deg);
   const lon1 = toRadians(from.longitude_deg);
   const lat2 = toRadians(to.latitude_deg);
@@ -72,7 +81,22 @@ export function greatCircleRoute(from: Airport, to: Airport): [number, number][]
   return points;
 }
 
-function hexCentroid(hex: InterferenceHex): [number, number] | null {
+export function multiLegRoute(stops: Airport[]): [number, number][] {
+  if (stops.length < 2) return [];
+  const combined: [number, number][] = [];
+
+  for (let i = 0; i < stops.length - 1; i += 1) {
+    const seg = greatCircleSegment(stops[i], stops[i + 1]);
+    if (i > 0 && seg.length > 0) {
+      combined.push(...seg.slice(1));
+    } else {
+      combined.push(...seg);
+    }
+  }
+  return combined;
+}
+
+export function hexCentroid(hex: InterferenceHex): [number, number] | null {
   if (!Array.isArray(hex.poly) || hex.poly.length === 0) return null;
   let latSum = 0;
   let lonSum = 0;
@@ -89,39 +113,41 @@ function minDistanceToRouteKm(
   routePoints: [number, number][]
 ): number {
   let minKm = Infinity;
-  // Sample every 2nd point for fast evaluation on long routes
   for (let i = 0; i < routePoints.length; i += 2) {
     const d = haversineKm(lat, lon, routePoints[i][0], routePoints[i][1]);
     if (d < minKm) minKm = d;
   }
   const last = routePoints[routePoints.length - 1];
-  const dLast = haversineKm(lat, lon, last[0], last[1]);
-  return Math.min(minKm, dLast);
+  if (last) {
+    const dLast = haversineKm(lat, lon, last[0], last[1]);
+    if (dLast < minKm) minKm = dLast;
+  }
+  return minKm;
 }
 
 export function analyzeRouteInterference(
-  origin: Airport,
-  destination: Airport,
+  stops: Airport[],
   routePoints: [number, number][],
   hexes: InterferenceHex[],
   corridorKm: number
 ): RouteAnalysis {
-  const distanceKm = Math.round(
-    haversineKm(
-      origin.latitude_deg,
-      origin.longitude_deg,
-      destination.latitude_deg,
-      destination.longitude_deg
-    )
-  );
+  let totalDist = 0;
+  for (let i = 0; i < stops.length - 1; i += 1) {
+    totalDist += haversineKm(
+      stops[i].latitude_deg,
+      stops[i].longitude_deg,
+      stops[i + 1].latitude_deg,
+      stops[i + 1].longitude_deg
+    );
+  }
+  const distanceKm = Math.round(totalDist);
 
   let moderateCount = 0;
   let highCount = 0;
   let veryHighCount = 0;
   let maxSeverity: ActiveSeverity | null = null;
-  let hottestHex: InterferenceHex | null = null;
-  let bestScore = -1;
   const nearbyHexes: InterferenceHex[] = [];
+  const scored: RouteHotspot[] = [];
 
   for (const hex of hexes) {
     const sev = normalizeSeverity(hex.c);
@@ -140,18 +166,31 @@ export function analyzeRouteInterference(
         maxSeverity = sev;
       }
 
-      const score = severityRank(sev) * 1000 + Number(hex.p || 0) * 10 + Number(hex.b || 0);
-      if (score > bestScore) {
-        bestScore = score;
-        hottestHex = hex;
-      }
+      const score =
+        severityRank(sev) * 10000 +
+        Number(hex.p || 0) * 100 +
+        Number(hex.b || 0) -
+        distKm * 2;
+
+      scored.push({
+        hex,
+        severity: sev,
+        minDistanceKm: Math.round(distKm),
+        score,
+      });
     }
   }
 
+  scored.sort((a, b) => b.score - a.score);
+  const hotspots = scored.slice(0, 5);
+  const hottestHex = hotspots[0]?.hex ?? null;
+
   return {
+    waypoints: stops,
     distanceKm,
     corridorKm,
     nearbyHexes,
+    hotspots,
     moderateCount,
     highCount,
     veryHighCount,

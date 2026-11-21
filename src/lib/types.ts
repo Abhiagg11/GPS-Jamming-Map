@@ -27,10 +27,19 @@ export interface InterferenceResponse {
   hexes: InterferenceHex[];
 }
 
+export interface RouteHotspot {
+  hex: InterferenceHex;
+  severity: ActiveSeverity;
+  minDistanceKm: number;
+  score: number;
+}
+
 export interface RouteAnalysis {
+  waypoints: Airport[];
   distanceKm: number;
   corridorKm: number;
   nearbyHexes: InterferenceHex[];
+  hotspots: RouteHotspot[];
   moderateCount: number;
   highCount: number;
   veryHighCount: number;

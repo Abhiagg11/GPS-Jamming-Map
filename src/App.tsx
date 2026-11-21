@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeftRight,
-  ArrowRight,
   ChevronDown,
   ChevronUp,
   Crosshair,
+  Download,
   Flame,
   LoaderCircle,
   Moon,
@@ -16,13 +16,15 @@ import {
   Satellite,
   SlidersHorizontal,
   Sun,
+  X,
 } from 'lucide-react';
 
 import MapView from './components/MapView';
 import { findAirport, searchAirports } from './lib/airports';
 import {
   analyzeRouteInterference,
-  greatCircleRoute,
+  hexCentroid,
+  multiLegRoute,
   normalizeSeverity,
 } from './lib/route';
 import type {
@@ -32,10 +34,10 @@ import type {
   InterferenceResponse,
 } from './lib/types';
 
-const PRESET_ROUTES: [string, string][] = [
-  ['DEL', 'BOM'],
-  ['BLR', 'DEL'],
-  ['DEL', 'DXB'],
+const PRESET_ROUTES: [string, string, string][] = [
+  ['DEL', '', 'BOM'],
+  ['BLR', '', 'DEL'],
+  ['DEL', 'DOH', 'LHR'],
 ];
 
 const CORRIDOR_OPTIONS = [50, 150, 300];
@@ -45,6 +47,24 @@ function severityLabel(sev: ActiveSeverity | null): string {
   if (sev === 'r') return 'High';
   if (sev === 'y') return 'Moderate';
   return 'None in corridor';
+}
+
+function readInitialParams() {
+  const params = new URLSearchParams(window.location.search);
+  const from = (params.get('from') || 'DEL').trim().toUpperCase().slice(0, 24);
+  const via = (params.get('via') || '').trim().toUpperCase().slice(0, 24);
+  const to = (params.get('to') || 'BOM').trim().toUpperCase().slice(0, 24);
+  const rawCorridor = Number(params.get('corridor'));
+  const corridor = CORRIDOR_OPTIONS.includes(rawCorridor) ? rawCorridor : 150;
+  const themeParam = params.get('theme');
+  const dark =
+    themeParam === 'dark'
+      ? true
+      : themeParam === 'light'
+        ? false
+        : localStorage.getItem('gps-monitor-theme') === 'dark';
+
+  return { from, via, to, corridor, dark };
 }
 
 async function fetchInterferenceFeed(): Promise<InterferenceResponse> {
@@ -65,21 +85,23 @@ async function fetchInterferenceFeed(): Promise<InterferenceResponse> {
 }
 
 export default function App() {
-  const [darkMode, setDarkMode] = useState(
-    () => localStorage.getItem('gps-monitor-theme') === 'dark'
-  );
+  const initial = useMemo(() => readInitialParams(), []);
+
+  const [darkMode, setDarkMode] = useState(initial.dark);
   const [mobilePanelOpen, setMobilePanelOpen] = useState(true);
 
-  const [fromCode, setFromCode] = useState('DEL');
-  const [toCode, setToCode] = useState('BOM');
-  const [corridorKm, setCorridorKm] = useState(150);
+  const [fromCode, setFromCode] = useState(initial.from);
+  const [viaCode, setViaCode] = useState(initial.via);
+  const [toCode, setToCode] = useState(initial.to);
+  const [corridorKm, setCorridorKm] = useState(initial.corridor);
 
   const [fromSuggestions, setFromSuggestions] = useState<Airport[]>([]);
+  const [viaSuggestions, setViaSuggestions] = useState<Airport[]>([]);
   const [toSuggestions, setToSuggestions] = useState<Airport[]>([]);
 
-  const [origin, setOrigin] = useState<Airport | null>(null);
-  const [destination, setDestination] = useState<Airport | null>(null);
+  const [stops, setStops] = useState<Airport[]>([]);
   const [route, setRoute] = useState<[number, number][] | null>(null);
+  const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
 
   const [hexes, setHexes] = useState<InterferenceHex[]>([]);
   const [historyDate, setHistoryDate] = useState('');
@@ -100,12 +122,16 @@ export default function App() {
   const [focusTarget, setFocusTarget] = useState<{
     lat: number;
     lon: number;
+    zoom?: number;
     nonce: number;
   } | null>(null);
   const [resetNonce, setResetNonce] = useState(0);
 
   useEffect(() => {
     localStorage.setItem('gps-monitor-theme', darkMode ? 'dark' : 'light');
+    const url = new URL(window.location.href);
+    url.searchParams.set('theme', darkMode ? 'dark' : 'light');
+    window.history.replaceState({}, '', url.toString());
   }, [darkMode]);
 
   useEffect(() => {
@@ -140,7 +166,7 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    if (fromCode.trim().length < 1) {
+    if (!fromCode.trim()) {
       setFromSuggestions([]);
       return;
     }
@@ -158,7 +184,25 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    if (toCode.trim().length < 1) {
+    if (!viaCode.trim()) {
+      setViaSuggestions([]);
+      return;
+    }
+    searchAirports(viaCode, 5)
+      .then((matches) => {
+        if (active) setViaSuggestions(matches);
+      })
+      .catch(() => {
+        if (active) setViaSuggestions([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [viaCode]);
+
+  useEffect(() => {
+    let active = true;
+    if (!toCode.trim()) {
       setToSuggestions([]);
       return;
     }
@@ -180,15 +224,9 @@ export default function App() {
   );
 
   const routeAnalysis = useMemo(() => {
-    if (!origin || !destination || !route) return null;
-    return analyzeRouteInterference(
-      origin,
-      destination,
-      route,
-      hexes,
-      corridorKm
-    );
-  }, [origin, destination, route, hexes, corridorKm]);
+    if (stops.length < 2 || !route) return null;
+    return analyzeRouteInterference(stops, route, hexes, corridorKm);
+  }, [stops, route, hexes, corridorKm]);
 
   const highlightedCellIds = useMemo(() => {
     if (!routeAnalysis) return undefined;
@@ -205,65 +243,186 @@ export default function App() {
     setRouteError('');
   }
 
-  async function plotRoute(customFrom?: string, customTo?: string) {
+  function syncRouteUrl(f: string, v: string, t: string, c: number) {
+    const url = new URL(window.location.href);
+    if (f) url.searchParams.set('from', f);
+    else url.searchParams.delete('from');
+    if (v) url.searchParams.set('via', v);
+    else url.searchParams.delete('via');
+    if (t) url.searchParams.set('to', t);
+    else url.searchParams.delete('to');
+    url.searchParams.set('corridor', String(c));
+    window.history.replaceState({}, '', url.toString());
+  }
+
+  async function plotRoute(
+    customFrom?: string,
+    customVia?: string,
+    customTo?: string
+  ) {
     const startCode = (customFrom ?? fromCode).trim().toUpperCase();
+    const midCode = (customVia ?? viaCode).trim().toUpperCase();
     const endCode = (customTo ?? toCode).trim().toUpperCase();
 
     setFromCode(startCode);
+    setViaCode(midCode);
     setToCode(endCode);
     setRouteError('');
+    setSelectedCellId(null);
     setLoadingRoute(true);
 
     try {
       const from = await findAirport(startCode);
-      const to = await findAirport(endCode);
-
       if (!from) {
-        throw new Error(`Airport code "${startCode}" was not found.`);
-      }
-      if (!to) {
-        throw new Error(`Airport code "${endCode}" was not found.`);
-      }
-      if (from.iata_code === to.iata_code) {
-        throw new Error('Choose two different airports.');
+        throw new Error(`Origin airport "${startCode}" was not found.`);
       }
 
-      setOrigin(from);
-      setDestination(to);
-      setRoute(greatCircleRoute(from, to));
+      let via: Airport | undefined;
+      if (midCode) {
+        via = await findAirport(midCode);
+        if (!via) {
+          throw new Error(`Waypoint airport "${midCode}" was not found.`);
+        }
+      }
+
+      const to = await findAirport(endCode);
+      if (!to) {
+        throw new Error(`Destination airport "${endCode}" was not found.`);
+      }
+
+      const resolvedStops = via ? [from, via, to] : [from, to];
+      const uniqueCodes = new Set(resolvedStops.map((s) => s.iata_code));
+      if (uniqueCodes.size < resolvedStops.length) {
+        throw new Error('Select distinct airports for each stop.');
+      }
+
+      setStops(resolvedStops);
+      setRoute(multiLegRoute(resolvedStops));
+      setFromCode(from.iata_code);
+      setViaCode(via ? via.iata_code : '');
+      setToCode(to.iata_code);
       setFromSuggestions([]);
+      setViaSuggestions([]);
       setToSuggestions([]);
+      syncRouteUrl(
+        from.iata_code,
+        via ? via.iata_code : '',
+        to.iata_code,
+        corridorKm
+      );
     } catch (error) {
       setRouteError(
         error instanceof Error ? error.message : 'Unable to plot this route.'
       );
       setRoute(null);
-      setOrigin(null);
-      setDestination(null);
+      setStops([]);
     } finally {
       setLoadingRoute(false);
     }
   }
 
-  function focusHottestHex() {
-    const hot = routeAnalysis?.hottestHex;
-    if (!hot || !hot.poly?.length) return;
-    const lat = hot.poly.reduce((acc, p) => acc + p[0], 0) / hot.poly.length;
-    const lon = hot.poly.reduce((acc, p) => acc + p[1], 0) / hot.poly.length;
-    setFocusTarget((prev) => ({ lat, lon, nonce: (prev?.nonce ?? 0) + 1 }));
+  function focusHex(hex: InterferenceHex) {
+    const center = hexCentroid(hex);
+    if (!center) return;
+    setSelectedCellId(hex.h);
+    setFocusTarget((prev) => ({
+      lat: center[0],
+      lon: center[1],
+      zoom: 6,
+      nonce: (prev?.nonce ?? 0) + 1,
+    }));
+  }
+
+  function clearRouteOnly() {
+    setRoute(null);
+    setStops([]);
+    setSelectedCellId(null);
+    setRouteError('');
   }
 
   function resetMap() {
-    setRoute(null);
-    setOrigin(null);
-    setDestination(null);
+    clearRouteOnly();
     setFocusTarget(null);
-    setRouteError('');
     setFromCode('DEL');
+    setViaCode('');
     setToCode('BOM');
+    setCorridorKm(150);
     setVisibleSeverities({ y: true, r: true, p: true });
     setResetNonce((n) => n + 1);
+    syncRouteUrl('DEL', '', 'BOM', 150);
   }
+
+  function exportReport(format: 'json' | 'csv') {
+    if (!routeAnalysis) return;
+    const stopSummary = routeAnalysis.waypoints.map((w) => w.iata_code).join('->');
+    const timestamp = new Date().toISOString();
+
+    if (format === 'json') {
+      const payload = {
+        exportedAt: timestamp,
+        route: stopSummary,
+        waypoints: routeAnalysis.waypoints.map((w) => ({
+          iata: w.iata_code,
+          name: w.name,
+          lat: w.latitude_deg,
+          lon: w.longitude_deg,
+        })),
+        distanceKm: routeAnalysis.distanceKm,
+        corridorKm: routeAnalysis.corridorKm,
+        peakSeverity: severityLabel(routeAnalysis.maxSeverity),
+        counts: {
+          moderate: routeAnalysis.moderateCount,
+          high: routeAnalysis.highCount,
+          veryHigh: routeAnalysis.veryHighCount,
+          totalNearby: routeAnalysis.nearbyHexes.length,
+        },
+        hotspots: routeAnalysis.hotspots.map((hs) => ({
+          cell: hs.hex.h,
+          severity: hs.severity,
+          minDistanceKm: hs.minDistanceKm,
+          affectedAircraft: hs.hex.b,
+          unaffectedAircraft: hs.hex.g,
+          affectedSharePct: hs.hex.p,
+        })),
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: 'application/json',
+      });
+      triggerDownload(blob, `gnss-route-${stopSummary}.json`);
+      return;
+    }
+
+    const lines = [
+      'cell,severity,min_distance_km,affected_aircraft,unaffected_aircraft,affected_share_pct',
+      ...routeAnalysis.hotspots.map((hs) =>
+        [
+          hs.hex.h,
+          hs.severity,
+          hs.minDistanceKm,
+          hs.hex.b,
+          hs.hex.g,
+          hs.hex.p,
+        ].join(',')
+      ),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    triggerDownload(blob, `gnss-route-${stopSummary}.csv`);
+  }
+
+  function triggerDownload(blob: Blob, filename: string) {
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }
+
+  const totalNearby = routeAnalysis?.nearbyHexes.length ?? 0;
+  const modPct = totalNearby ? ((routeAnalysis!.moderateCount / totalNearby) * 100).toFixed(0) : '0';
+  const highPct = totalNearby ? ((routeAnalysis!.highCount / totalNearby) * 100).toFixed(0) : '0';
+  const vhPct = totalNearby ? ((routeAnalysis!.veryHighCount / totalNearby) * 100).toFixed(0) : '0';
 
   return (
     <main className={`app-shell ${darkMode ? 'dark-theme' : ''}`}>
@@ -280,8 +439,8 @@ export default function App() {
         <div className="topbar-actions">
           <div className="topbar-status">
             <span className="status-dot" />
-            {route && origin && destination
-              ? `Route: ${origin.iata_code} → ${destination.iata_code}`
+            {stops.length >= 2
+              ? `Route: ${stops.map((s) => s.iata_code).join(' → ')}`
               : 'Worldwide view'}
           </div>
 
@@ -317,19 +476,19 @@ export default function App() {
             </div>
             <div>
               <h2>Route filter</h2>
-              <p>IATA code, airport, or country</p>
+              <p>Direct or multi-leg IATA route</p>
             </div>
           </div>
 
           <div className="preset-row" aria-label="Quick routes">
-            {PRESET_ROUTES.map(([a, b]) => (
+            {PRESET_ROUTES.map(([a, v, b]) => (
               <button
-                key={`${a}-${b}`}
+                key={`${a}-${v}-${b}`}
                 type="button"
                 className="preset-chip"
-                onClick={() => void plotRoute(a, b)}
+                onClick={() => void plotRoute(a, v, b)}
               >
-                {a} → {b}
+                {v ? `${a}→${v}→${b}` : `${a} → ${b}`}
               </button>
             ))}
           </div>
@@ -348,6 +507,14 @@ export default function App() {
               onChange={(event) =>
                 setFromCode(event.target.value.toUpperCase().slice(0, 24))
               }
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setFromSuggestions([]);
+                if (e.key === 'Enter' && fromSuggestions.length > 0) {
+                  e.preventDefault();
+                  setFromCode(fromSuggestions[0].iata_code);
+                  setFromSuggestions([]);
+                }
+              }}
               placeholder="e.g. DEL"
               autoComplete="off"
             />
@@ -384,13 +551,73 @@ export default function App() {
               <span />
             </div>
 
-            <label htmlFor="to-airport">TO</label>
+            <label htmlFor="via-airport">VIA WAYPOINT (OPTIONAL)</label>
+            <div className="input-with-clear">
+              <input
+                id="via-airport"
+                value={viaCode}
+                onChange={(event) =>
+                  setViaCode(event.target.value.toUpperCase().slice(0, 24))
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setViaSuggestions([]);
+                  if (e.key === 'Enter' && viaSuggestions.length > 0) {
+                    e.preventDefault();
+                    setViaCode(viaSuggestions[0].iata_code);
+                    setViaSuggestions([]);
+                  }
+                }}
+                placeholder="Optional e.g. DOH"
+                autoComplete="off"
+              />
+              {viaCode && (
+                <button
+                  type="button"
+                  className="mini-clear-btn"
+                  onClick={() => {
+                    setViaCode('');
+                    setViaSuggestions([]);
+                  }}
+                  aria-label="Clear waypoint"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+            {viaSuggestions.length > 0 && (
+              <div className="suggestion-list" role="listbox">
+                {viaSuggestions.map((a) => (
+                  <button
+                    key={a.iata_code}
+                    type="button"
+                    className="suggestion-item"
+                    onClick={() => {
+                      setViaCode(a.iata_code);
+                      setViaSuggestions([]);
+                    }}
+                  >
+                    <strong>{a.iata_code}</strong>
+                    <span>{a.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <label htmlFor="to-airport" className="spaced-label">TO</label>
             <input
               id="to-airport"
               value={toCode}
               onChange={(event) =>
                 setToCode(event.target.value.toUpperCase().slice(0, 24))
               }
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setToSuggestions([]);
+                if (e.key === 'Enter' && toSuggestions.length > 0) {
+                  e.preventDefault();
+                  setToCode(toSuggestions[0].iata_code);
+                  setToSuggestions([]);
+                }
+              }}
               placeholder="e.g. BOM"
               autoComplete="off"
             />
@@ -421,7 +648,10 @@ export default function App() {
                     key={km}
                     type="button"
                     className={`corridor-pill ${corridorKm === km ? 'active' : ''}`}
-                    onClick={() => setCorridorKm(km)}
+                    onClick={() => {
+                      setCorridorKm(km);
+                      syncRouteUrl(fromCode, viaCode, toCode, km);
+                    }}
                   >
                     {km} km
                   </button>
@@ -429,18 +659,31 @@ export default function App() {
               </div>
             </div>
 
-            <button
-              className="plot-button"
-              type="submit"
-              disabled={loadingRoute || !fromCode.trim() || !toCode.trim()}
-            >
-              {loadingRoute ? (
-                <LoaderCircle className="spin" size={16} />
-              ) : (
-                <Plane size={16} />
+            <div className="route-action-row">
+              <button
+                className="plot-button"
+                type="submit"
+                disabled={loadingRoute || !fromCode.trim() || !toCode.trim()}
+              >
+                {loadingRoute ? (
+                  <LoaderCircle className="spin" size={16} />
+                ) : (
+                  <Plane size={16} />
+                )}
+                {loadingRoute ? 'Plotting…' : 'Show route'}
+              </button>
+
+              {route && (
+                <button
+                  type="button"
+                  className="clear-route-btn"
+                  onClick={clearRouteOnly}
+                  title="Remove active route line"
+                >
+                  Clear
+                </button>
               )}
-              {loadingRoute ? 'Plotting…' : 'Show route'}
-            </button>
+            </div>
           </form>
 
           {routeError && (
@@ -450,7 +693,7 @@ export default function App() {
             </div>
           )}
 
-          {routeAnalysis && origin && destination && (
+          {routeAnalysis && stops.length >= 2 && (
             <section className="route-summary-card">
               <div className="section-title">
                 <Flame size={14} />
@@ -458,7 +701,7 @@ export default function App() {
               </div>
               <div className="summary-grid">
                 <div>
-                  <small>Distance</small>
+                  <small>Total distance</small>
                   <b>{routeAnalysis.distanceKm.toLocaleString()} km</b>
                 </div>
                 <div>
@@ -477,16 +720,60 @@ export default function App() {
                   </b>
                 </div>
               </div>
+
+              {totalNearby > 0 && (
+                <div className="severity-bar" title={`Mod ${modPct}% · High ${highPct}% · Very high ${vhPct}%`}>
+                  <span style={{ width: `${modPct}%`, background: '#f2c230' }} />
+                  <span style={{ width: `${highPct}%`, background: '#ed493f' }} />
+                  <span style={{ width: `${vhPct}%`, background: '#9638c8' }} />
+                </div>
+              )}
+
               {routeAnalysis.hottestHex && (
                 <button
                   type="button"
                   className="focus-hot-btn"
-                  onClick={focusHottestHex}
+                  onClick={() => focusHex(routeAnalysis.hottestHex!)}
                 >
                   <Crosshair size={13} />
                   Focus highest cell ({routeAnalysis.hottestHex.h})
                 </button>
               )}
+
+              {routeAnalysis.hotspots.length > 0 && (
+                <div className="hotspot-list">
+                  <div className="hotspot-heading">Top cells near corridor</div>
+                  {routeAnalysis.hotspots.map((hs) => (
+                    <button
+                      key={hs.hex.h}
+                      type="button"
+                      className={`hotspot-row ${selectedCellId === hs.hex.h ? 'selected' : ''}`}
+                      onClick={() => focusHex(hs.hex)}
+                    >
+                      <span className={`sev-dot sev-${hs.severity}`} />
+                      <span className="hs-cell">{hs.hex.h}</span>
+                      <span className="hs-meta">{hs.minDistanceKm} km</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="export-row">
+                <button
+                  type="button"
+                  className="export-btn"
+                  onClick={() => exportReport('json')}
+                >
+                  <Download size={12} /> JSON
+                </button>
+                <button
+                  type="button"
+                  className="export-btn"
+                  onClick={() => exportReport('csv')}
+                >
+                  <Download size={12} /> CSV
+                </button>
+              </div>
             </section>
           )}
 
@@ -583,23 +870,21 @@ export default function App() {
           <MapView
             hexes={hexes}
             route={route}
-            origin={origin}
-            destination={destination}
+            stops={stops}
             darkMode={darkMode}
             visibleSeverities={visibleSeverities}
             highlightedCellIds={highlightedCellIds}
+            selectedCellId={selectedCellId}
             focusTarget={focusTarget}
             resetNonce={resetNonce}
           />
 
-          {route && origin && destination && (
+          {route && stops.length >= 2 && (
             <div className="route-chip">
               <Plane size={14} />
-              <strong>{origin.iata_code}</strong>
-              <ArrowRight size={13} />
-              <strong>{destination.iata_code}</strong>
+              <strong>{stops.map((s) => s.iata_code).join(' → ')}</strong>
               <span>
-                {origin.name} to {destination.name}
+                {stops[0].name} to {stops[stops.length - 1].name}
                 {routeAnalysis ? ` · ${routeAnalysis.distanceKm.toLocaleString()} km` : ''}
               </span>
             </div>
