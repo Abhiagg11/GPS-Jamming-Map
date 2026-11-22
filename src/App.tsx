@@ -51,6 +51,12 @@ const BASEMAP_OPTIONS: { id: BasemapStyle; label: string }[] = [
   { id: 'satellite', label: 'Satellite' },
 ];
 
+const POLL_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+
+function snapshotKey(data: InterferenceResponse): string {
+  return `${data.history_date ?? ''}|${data.updated ?? ''}|${data.hexes?.length ?? 0}`;
+}
+
 function severityLabel(sev: ActiveSeverity | null): string {
   if (sev === 'p') return 'Very high';
   if (sev === 'r') return 'High';
@@ -129,9 +135,14 @@ export default function App() {
   const [historyDate, setHistoryDate] = useState('');
   const [updatedAt, setUpdatedAt] = useState('');
   const [loadingData, setLoadingData] = useState(true);
+  const [checkingFeed, setCheckingFeed] = useState(false);
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [dataError, setDataError] = useState('');
   const [routeError, setRouteError] = useState('');
+
+  const [snapshotSignature, setSnapshotSignature] = useState('');
+  const [pendingSnapshot, setPendingSnapshot] =
+    useState<InterferenceResponse | null>(null);
 
   const [visibleSeverities, setVisibleSeverities] = useState<
     Record<ActiveSeverity, boolean>
@@ -167,6 +178,90 @@ export default function App() {
     window.history.replaceState({}, '', url.toString());
   }, [darkMode, basemap]);
 
+  const applySnapshot = useCallback((data: InterferenceResponse) => {
+    const validHexes = Array.isArray(data.hexes) ? data.hexes : [];
+    setHexes(validHexes);
+    setHistoryDate(data.history_date ?? '');
+    setUpdatedAt(data.updated ?? '');
+    setSnapshotSignature(snapshotKey(data));
+    setPendingSnapshot(null);
+    if (!Array.isArray(data.hexes)) {
+      setDataError('The data provider returned an unexpected format.');
+    } else {
+      setDataError('');
+    }
+  }, []);
+
+  const checkForUpdates = useCallback(
+    async (manual = false) => {
+      if (manual) setCheckingFeed(true);
+      try {
+        const data = await fetchInterferenceFeed();
+        const nextSig = snapshotKey(data);
+
+        if (!snapshotSignature) {
+          applySnapshot(data);
+        } else if (nextSig && nextSig !== snapshotSignature) {
+          if (manual) {
+            applySnapshot(data);
+            showToast('Updated to latest interference snapshot');
+          } else {
+            setPendingSnapshot(data);
+          }
+        } else if (manual) {
+          showToast('Already on latest snapshot');
+        }
+      } catch (error: unknown) {
+        if (manual) {
+          showToast(
+            error instanceof Error ? error.message : 'Unable to check feed'
+          );
+        }
+      } finally {
+        if (manual) setCheckingFeed(false);
+      }
+    },
+    [applySnapshot, showToast, snapshotSignature]
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    fetchInterferenceFeed()
+      .then((data) => {
+        if (!active) return;
+        applySnapshot(data);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setDataError(
+            error instanceof Error
+              ? error.message
+              : 'Could not load interference data.'
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingData(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [applySnapshot]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void checkForUpdates(false);
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [checkForUpdates]);
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
@@ -190,36 +285,6 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   });
-
-  useEffect(() => {
-    let active = true;
-    fetchInterferenceFeed()
-      .then((data) => {
-        if (!active) return;
-        setHexes(Array.isArray(data.hexes) ? data.hexes : []);
-        setHistoryDate(data.history_date ?? '');
-        setUpdatedAt(data.updated ?? '');
-        if (!Array.isArray(data.hexes)) {
-          setDataError('The data provider returned an unexpected format.');
-        }
-      })
-      .catch((error: unknown) => {
-        if (active) {
-          setDataError(
-            error instanceof Error
-              ? error.message
-              : 'Could not load interference data.'
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setLoadingData(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -965,16 +1030,29 @@ export default function App() {
           <div className="panel-divider" />
 
           <section className="feed-section">
-            <button
-              type="button"
-              className="section-toggle-btn"
-              onClick={() => setFeedOpen((o) => !o)}
-              aria-expanded={feedOpen}
-            >
-              <Crosshair size={15} />
-              <h3>Data feed</h3>
-              {feedOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-            </button>
+            <div className="collapsible-header">
+              <button
+                type="button"
+                className="section-toggle-btn"
+                onClick={() => setFeedOpen((o) => !o)}
+                aria-expanded={feedOpen}
+              >
+                <Crosshair size={15} />
+                <h3>Data feed</h3>
+                {feedOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+              </button>
+
+              <button
+                type="button"
+                className="copy-link-btn"
+                onClick={() => void checkForUpdates(true)}
+                disabled={checkingFeed || loadingData}
+                title="Check for a newer feed snapshot"
+              >
+                <RefreshCw size={10} className={checkingFeed ? 'spin' : ''} />
+                <span>{checkingFeed ? 'Checking' : 'Check'}</span>
+              </button>
+            </div>
 
             {feedOpen && (
               <>
@@ -1061,6 +1139,24 @@ export default function App() {
           {toastMessage && (
             <div className="toast-pill" role="status" aria-live="polite">
               {toastMessage}
+            </div>
+          )}
+
+          {pendingSnapshot && (
+            <div className="snapshot-banner" role="status">
+              <span>
+                New snapshot ready
+                {pendingSnapshot.history_date ? ` (${pendingSnapshot.history_date})` : ''}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  applySnapshot(pendingSnapshot);
+                  showToast('Updated to latest interference snapshot');
+                }}
+              >
+                Apply now
+              </button>
             </div>
           )}
 
