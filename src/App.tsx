@@ -107,6 +107,7 @@ async function fetchInterferenceFeed(): Promise<InterferenceResponse> {
 export default function App() {
   const initial = useMemo(() => readInitialParams(), []);
   const fromInputRef = useRef<HTMLInputElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   const [darkMode, setDarkMode] = useState(initial.dark);
   const [basemap, setBasemap] = useState<BasemapStyle>(initial.basemap);
@@ -158,6 +159,7 @@ export default function App() {
     zoom?: number;
     nonce: number;
   } | null>(null);
+  const [fitRouteNonce, setFitRouteNonce] = useState(0);
   const [resetNonce, setResetNonce] = useState(0);
 
   const showToast = useCallback((msg: string) => {
@@ -177,6 +179,18 @@ export default function App() {
     url.searchParams.set('map', basemap);
     window.history.replaceState({}, '', url.toString());
   }, [darkMode, basemap]);
+
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (!formRef.current?.contains(event.target as Node)) {
+        setFromSuggestions([]);
+        setViaSuggestions([]);
+        setToSuggestions([]);
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const applySnapshot = useCallback((data: InterferenceResponse) => {
     const validHexes = Array.isArray(data.hexes) ? data.hexes : [];
@@ -262,6 +276,29 @@ export default function App() {
     };
   }, [checkForUpdates]);
 
+  const resetMap = useCallback(() => {
+    setRoute(null);
+    setStops([]);
+    setSelectedCellId(null);
+    setRouteError('');
+    setFocusTarget(null);
+    setFromCode('DEL');
+    setViaCode('');
+    setToCode('BOM');
+    setCorridorKm(150);
+    setBasemap('street');
+    setVisibleSeverities({ y: true, r: true, p: true });
+    setResetNonce((n) => n + 1);
+    const url = new URL(window.location.href);
+    url.searchParams.set('from', 'DEL');
+    url.searchParams.delete('via');
+    url.searchParams.set('to', 'BOM');
+    url.searchParams.set('corridor', '150');
+    url.searchParams.set('map', 'street');
+    window.history.replaceState({}, '', url.toString());
+    showToast('Map reset to worldwide view');
+  }, [showToast]);
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
@@ -284,7 +321,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  });
+  }, [resetMap]);
 
   useEffect(() => {
     let active = true;
@@ -362,6 +399,17 @@ export default function App() {
   function swapAirports() {
     setFromCode(toCode);
     setToCode(fromCode);
+    setRouteError('');
+  }
+
+  function handleSelectStopRole(role: 'from' | 'to', airport: Airport) {
+    if (role === 'from') {
+      setFromCode(airport.iata_code);
+      showToast(`Set FROM to ${airport.iata_code}`);
+    } else {
+      setToCode(airport.iata_code);
+      showToast(`Set TO to ${airport.iata_code}`);
+    }
     setRouteError('');
   }
 
@@ -475,23 +523,6 @@ export default function App() {
     setSelectedCellId(null);
     setRouteError('');
     showToast('Active route cleared');
-  }
-
-  function resetMap() {
-    setRoute(null);
-    setStops([]);
-    setSelectedCellId(null);
-    setRouteError('');
-    setFocusTarget(null);
-    setFromCode('DEL');
-    setViaCode('');
-    setToCode('BOM');
-    setCorridorKm(150);
-    setBasemap('street');
-    setVisibleSeverities({ y: true, r: true, p: true });
-    setResetNonce((n) => n + 1);
-    syncRouteUrl('DEL', '', 'BOM', 150);
-    showToast('Map reset to worldwide view');
   }
 
   function exportReport(format: 'json' | 'csv') {
@@ -646,6 +677,7 @@ export default function App() {
           </div>
 
           <form
+            ref={formRef}
             className="route-form"
             onSubmit={(event) => {
               event.preventDefault();
@@ -1114,13 +1146,18 @@ export default function App() {
             hexes={hexes}
             route={route}
             stops={stops}
+            corridorKm={corridorKm}
             darkMode={darkMode}
             basemap={basemap}
             visibleSeverities={visibleSeverities}
             highlightedCellIds={highlightedCellIds}
             selectedCellId={selectedCellId}
             focusTarget={focusTarget}
+            fitRouteNonce={fitRouteNonce}
             resetNonce={resetNonce}
+            onSelectStopRole={handleSelectStopRole}
+            onFitRoute={() => setFitRouteNonce((n) => n + 1)}
+            onResetWorld={resetMap}
           />
 
           {route && stops.length >= 2 && (

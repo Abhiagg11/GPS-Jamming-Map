@@ -1494,3 +1494,115 @@ input:focus-visible {
     top: 50px;
   }
 }
+
+.map-floating-controls {
+  position: absolute;
+  right: 12px;
+  top: 13px;
+  z-index: 450;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.map-ctrl-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  color: #1e293b;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.map-ctrl-btn:hover {
+  border-color: #1769e0;
+  color: #1769e0;
+  background: #eff6ff;
+}
+
+.airport-popup {
+  min-width: 170px;
+  font-family: inherit;
+  font-size: 11px;
+}
+
+.airport-popup-tag {
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: #1769e0;
+  margin-bottom: 2px;
+}
+
+.airport-popup strong {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.airport-popup-coords {
+  font-size: 10px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.airport-popup-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.airport-popup-actions button {
+  padding: 4px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #f8fafc;
+  color: #1e293b;
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.airport-popup-actions button:hover {
+  border-color: #1769e0;
+  color: #1769e0;
+  background: #eff6ff;
+}
+
+.dark-theme .map-ctrl-btn {
+  background: rgba(23, 33, 49, 0.92);
+  border-color: #39485e;
+  color: #e2e8f0;
+}
+
+.dark-theme .map-ctrl-btn:hover {
+  border-color: #75aaff;
+  color: #93c5fd;
+  background: #203653;
+}
+
+.dark-theme .airport-popup-tag {
+  color: #93c5fd;
+}
+
+.dark-theme .airport-popup-coords {
+  color: #94a3b8;
+}
+
+.dark-theme .airport-popup-actions button {
+  background: #202d40;
+  border-color: #39485e;
+  color: #e2e8f0;
+}
+
+.dark-theme .airport-popup-actions button:hover {
+  border-color: #75aaff;
+  color: #93c5fd;
+}

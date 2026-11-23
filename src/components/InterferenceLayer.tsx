@@ -9,6 +9,7 @@ interface Props {
   visibleSeverities: Record<ActiveSeverity, boolean>;
   highlightedCellIds?: Set<string>;
   selectedCellId?: string | null;
+  hasActiveRoute?: boolean;
   darkMode: boolean;
 }
 
@@ -35,11 +36,11 @@ export default function InterferenceLayer({
   visibleSeverities,
   highlightedCellIds,
   selectedCellId,
+  hasActiveRoute = false,
   darkMode,
 }: Props) {
   const map = useMap();
 
-  // Build polygon geometries once when hexes change
   const preparedAll = useMemo<PreparedHexFeature[]>(() => {
     const list: PreparedHexFeature[] = [];
     for (const hex of hexes) {
@@ -86,30 +87,32 @@ export default function InterferenceLayer({
       features: activeFeatures,
     };
 
-    const layer = L.geoJSON(geoJsonData, {
-      style: (feature) => {
-        const item = feature?.properties as InterferenceHex | undefined;
-        const sev = item ? normalizeSeverity(item.c) ?? 'r' : 'r';
-        const colour = colours[sev];
-        const isHighlighted = Boolean(item && highlightedCellIds?.has(item.h));
-        const isSelected = Boolean(item && selectedCellId === item.h);
+    const getStyle = (item?: InterferenceHex) => {
+      const sev = item ? normalizeSeverity(item.c) ?? 'r' : 'r';
+      const colour = colours[sev];
+      const isHighlighted = Boolean(item && highlightedCellIds?.has(item.h));
+      const isSelected = Boolean(item && selectedCellId === item.h);
+      const isDimmed = hasActiveRoute && !isHighlighted && !isSelected;
 
-        return {
-          renderer: canvasRenderer,
-          color: isSelected
-            ? '#38bdf8'
-            : isHighlighted
-              ? darkMode
-                ? '#ffffff'
-                : '#0f172a'
-              : colour,
-          weight: isSelected ? 3 : isHighlighted ? 2.2 : 1.15,
-          opacity: 1,
-          fillColor: colour,
-          fillOpacity: isSelected ? 0.9 : isHighlighted ? 0.82 : 0.6,
-          interactive: true,
-        };
-      },
+      return {
+        renderer: canvasRenderer,
+        color: isSelected
+          ? '#38bdf8'
+          : isHighlighted
+            ? darkMode
+              ? '#ffffff'
+              : '#0f172a'
+            : colour,
+        weight: isSelected ? 3 : isHighlighted ? 2.2 : isDimmed ? 0.7 : 1.15,
+        opacity: isDimmed ? 0.35 : 1,
+        fillColor: colour,
+        fillOpacity: isSelected ? 0.9 : isHighlighted ? 0.82 : isDimmed ? 0.16 : 0.6,
+        interactive: true,
+      };
+    };
+
+    const layer = L.geoJSON(geoJsonData, {
+      style: (feature) => getStyle(feature?.properties as InterferenceHex | undefined),
       onEachFeature: (feature, polygon) => {
         const item = feature.properties as InterferenceHex;
         const sev = normalizeSeverity(item.c) ?? 'r';
@@ -121,16 +124,14 @@ export default function InterferenceLayer({
         polygon.on('mouseover', () => {
           path.setStyle({
             weight: 2.6,
+            opacity: 1,
             fillOpacity: 0.88,
           });
           map.getContainer().style.cursor = 'pointer';
         });
 
         polygon.on('mouseout', () => {
-          path.setStyle({
-            weight: isSelected ? 3 : isHighlighted ? 2.2 : 1.15,
-            fillOpacity: isSelected ? 0.9 : isHighlighted ? 0.82 : 0.6,
-          });
+          path.setStyle(getStyle(item));
           map.getContainer().style.cursor = '';
         });
 
@@ -169,7 +170,14 @@ export default function InterferenceLayer({
       map.getContainer().style.cursor = '';
       map.removeLayer(layer);
     };
-  }, [activeFeatures, highlightedCellIds, selectedCellId, darkMode, map]);
+  }, [
+    activeFeatures,
+    highlightedCellIds,
+    selectedCellId,
+    hasActiveRoute,
+    darkMode,
+    map,
+  ]);
 
   return null;
 }

@@ -1,12 +1,21 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   CircleMarker,
   MapContainer,
+  Polygon,
   Polyline,
+  Popup,
   TileLayer,
   Tooltip,
   useMap,
 } from 'react-leaflet';
+import { Globe, LocateFixed, Minus, Plus } from 'lucide-react';
+import {
+  corridorPolygon,
+  greatCirclePoints,
+  haversineKm,
+  initialBearingDeg,
+} from '../lib/route';
 import type { ActiveSeverity, Airport, InterferenceHex } from '../lib/types';
 import InterferenceLayer from './InterferenceLayer';
 
@@ -16,22 +25,29 @@ interface Props {
   hexes: InterferenceHex[];
   route: [number, number][] | null;
   stops: Airport[];
+  corridorKm: number;
   darkMode: boolean;
   basemap: BasemapStyle;
   visibleSeverities: Record<ActiveSeverity, boolean>;
   highlightedCellIds?: Set<string>;
   selectedCellId?: string | null;
   focusTarget: { lat: number; lon: number; zoom?: number; nonce: number } | null;
+  fitRouteNonce: number;
   resetNonce: number;
+  onSelectStopRole: (role: 'from' | 'to', airport: Airport) => void;
+  onFitRoute: () => void;
+  onResetWorld: () => void;
 }
 
 function MapController({
   route,
   focusTarget,
+  fitRouteNonce,
   resetNonce,
 }: {
   route: [number, number][] | null;
   focusTarget: { lat: number; lon: number; zoom?: number; nonce: number } | null;
+  fitRouteNonce: number;
   resetNonce: number;
 }) {
   const map = useMap();
@@ -39,12 +55,22 @@ function MapController({
   useEffect(() => {
     if (route?.length) {
       map.fitBounds(route, {
-        padding: [44, 44],
+        padding: [46, 46],
         maxZoom: 6,
         animate: true,
       });
     }
   }, [map, route]);
+
+  useEffect(() => {
+    if (fitRouteNonce > 0 && route?.length) {
+      map.fitBounds(route, {
+        padding: [46, 46],
+        maxZoom: 6,
+        animate: true,
+      });
+    }
+  }, [map, fitRouteNonce, route]);
 
   useEffect(() => {
     if (focusTarget) {
@@ -63,24 +89,124 @@ function MapController({
   return null;
 }
 
+function FloatingMapToolbar({
+  hasRoute,
+  onFitRoute,
+  onResetWorld,
+}: {
+  hasRoute: boolean;
+  onFitRoute: () => void;
+  onResetWorld: () => void;
+}) {
+  const map = useMap();
+
+  return (
+    <div className="map-floating-controls" aria-label="Map view controls">
+      {hasRoute && (
+        <button
+          type="button"
+          className="map-ctrl-btn"
+          onClick={onFitRoute}
+          title="Fit route in view"
+          aria-label="Fit route in view"
+        >
+          <LocateFixed size={14} />
+        </button>
+      )}
+      <button
+        type="button"
+        className="map-ctrl-btn"
+        onClick={onResetWorld}
+        title="Reset to world view"
+        aria-label="Reset to world view"
+      >
+        <Globe size={14} />
+      </button>
+      <button
+        type="button"
+        className="map-ctrl-btn"
+        onClick={() => map.zoomIn()}
+        title="Zoom in"
+        aria-label="Zoom in"
+      >
+        <Plus size={14} />
+      </button>
+      <button
+        type="button"
+        className="map-ctrl-btn"
+        onClick={() => map.zoomOut()}
+        title="Zoom out"
+        aria-label="Zoom out"
+      >
+        <Minus size={14} />
+      </button>
+    </div>
+  );
+}
+
 export default function MapView({
   hexes,
   route,
   stops,
+  corridorKm,
   darkMode,
   basemap,
   visibleSeverities,
   highlightedCellIds,
   selectedCellId,
   focusTarget,
+  fitRouteNonce,
   resetNonce,
+  onSelectStopRole,
+  onFitRoute,
+  onResetWorld,
 }: Props) {
+  const isDarkSurface = darkMode || basemap === 'satellite';
+  const hasRoute = Boolean(route && route.length >= 2);
+
+  const bufferBand = useMemo(() => {
+    if (!route || route.length < 2) return null;
+    return corridorPolygon(route, corridorKm);
+  }, [route, corridorKm]);
+
+  const legMidpoints = useMemo(() => {
+    if (stops.length < 2) return [];
+    const items: {
+      key: string;
+      center: [number, number];
+      label: string;
+    }[] = [];
+
+    for (let i = 0; i < stops.length - 1; i += 1) {
+      const a: [number, number] = [
+        stops[i].latitude_deg,
+        stops[i].longitude_deg,
+      ];
+      const b: [number, number] = [
+        stops[i + 1].latitude_deg,
+        stops[i + 1].longitude_deg,
+      ];
+      const pts = greatCirclePoints(a, b, 32);
+      const mid = pts[Math.floor(pts.length / 2)] ?? a;
+      const km = Math.round(haversineKm(a, b));
+      const brg = Math.round(initialBearingDeg(a, b));
+      items.push({
+        key: `${stops[i].iata_code}-${stops[i + 1].iata_code}-${i}`,
+        center: mid,
+        label: `L${i + 1} · ${km.toLocaleString()} km · ${brg}°`,
+      });
+    }
+
+    return items;
+  }, [stops]);
+
   return (
     <MapContainer
       center={[22, 10]}
       zoom={2}
       minZoom={2}
       maxZoom={10}
+      zoomControl={false}
       worldCopyJump
       preferCanvas
     >
@@ -135,15 +261,30 @@ export default function MapView({
         visibleSeverities={visibleSeverities}
         highlightedCellIds={highlightedCellIds}
         selectedCellId={selectedCellId}
-        darkMode={darkMode || basemap === 'satellite'}
+        hasActiveRoute={hasRoute}
+        darkMode={isDarkSurface}
       />
+
+      {bufferBand && bufferBand.length > 2 && (
+        <Polygon
+          positions={bufferBand}
+          pathOptions={{
+            color: isDarkSurface ? '#60a5fa' : '#1769e0',
+            weight: 1,
+            opacity: 0.45,
+            fillColor: isDarkSurface ? '#3b82f6' : '#2563eb',
+            fillOpacity: 0.08,
+            interactive: false,
+          }}
+        />
+      )}
 
       {route && (
         <>
           <Polyline
             positions={route}
             pathOptions={{
-              color: darkMode || basemap === 'satellite' ? '#60a5fa' : '#1769e0',
+              color: isDarkSurface ? '#60a5fa' : '#1769e0',
               weight: 9,
               opacity: 0.24,
             }}
@@ -151,7 +292,7 @@ export default function MapView({
           <Polyline
             positions={route}
             pathOptions={{
-              color: darkMode || basemap === 'satellite' ? '#93c5fd' : '#1769e0',
+              color: isDarkSurface ? '#93c5fd' : '#1769e0',
               weight: 3.5,
               opacity: 0.98,
               dashArray: '8 6',
@@ -160,9 +301,28 @@ export default function MapView({
         </>
       )}
 
+      {legMidpoints.map((leg) => (
+        <CircleMarker
+          key={leg.key}
+          center={leg.center}
+          radius={3.5}
+          pathOptions={{
+            color: isDarkSurface ? '#93c5fd' : '#1769e0',
+            weight: 1.5,
+            fillColor: isDarkSurface ? '#0f172a' : '#ffffff',
+            fillOpacity: 0.95,
+          }}
+        >
+          <Tooltip direction="bottom" offset={[0, 6]} opacity={0.95}>
+            {leg.label}
+          </Tooltip>
+        </CircleMarker>
+      ))}
+
       {stops.map((stop, idx) => {
         const isFirst = idx === 0;
         const isLast = idx === stops.length - 1;
+        const roleLabel = isFirst ? 'Origin' : isLast ? 'Destination' : 'Waypoint';
         const fillColor = isFirst ? '#1769e0' : isLast ? '#0f9d68' : '#d97706';
 
         return (
@@ -180,13 +340,45 @@ export default function MapView({
             <Tooltip permanent direction="top">
               {stop.iata_code}
             </Tooltip>
+            <Popup>
+              <div className="airport-popup">
+                <div className="airport-popup-tag">{roleLabel}</div>
+                <strong>
+                  {stop.iata_code} · {stop.name}
+                </strong>
+                <div className="airport-popup-coords">
+                  {stop.latitude_deg.toFixed(2)}°, {stop.longitude_deg.toFixed(2)}°
+                </div>
+                <div className="airport-popup-actions">
+                  <button
+                    type="button"
+                    onClick={() => onSelectStopRole('from', stop)}
+                  >
+                    Set FROM
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSelectStopRole('to', stop)}
+                  >
+                    Set TO
+                  </button>
+                </div>
+              </div>
+            </Popup>
           </CircleMarker>
         );
       })}
 
+      <FloatingMapToolbar
+        hasRoute={hasRoute}
+        onFitRoute={onFitRoute}
+        onResetWorld={onResetWorld}
+      />
+
       <MapController
         route={route}
         focusTarget={focusTarget}
+        fitRouteNonce={fitRouteNonce}
         resetNonce={resetNonce}
       />
     </MapContainer>
