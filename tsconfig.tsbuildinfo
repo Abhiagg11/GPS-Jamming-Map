@@ -1,1 +1,1 @@
-{"root":["./src/App.tsx","./src/main.tsx","./src/components/InterferenceLayer.tsx","./src/components/MapView.tsx","./src/lib/airports.ts","./src/lib/route.ts","./src/lib/types.ts","./vite.config.ts"],"version":"5.8.3"}
+{"root":["./src/App.tsx","./src/main.tsx","./src/components/InterferenceLayer.tsx","./src/components/MapView.tsx","./src/lib/airports.ts","./src/lib/route.ts","./src/lib/types.ts","./src/lib/waypoints.ts","./vite.config.ts"],"version":"5.8.3"}
